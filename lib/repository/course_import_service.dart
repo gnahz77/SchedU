@@ -4,10 +4,22 @@ import 'package:file_picker/file_picker.dart';
 import 'package:schedu/model/course.dart';
 import 'package:schedu/model/section_time.dart';
 
+/// 导入数据模型
+class ImportData {
+  final List<Map<String, dynamic>> courses;
+  final ScheduleConfig? scheduleConfig;
+
+  ImportData({
+    required this.courses,
+    this.scheduleConfig,
+  });
+}
+
 /// 课程导入服务类
 class CourseImportService {
   /// 选择并读取JSON文件
-  static Future<List<Map<String, dynamic>>?> pickAndReadJsonFile() async {
+  /// 返回一个Map，包含courses列表和可选的scheduleConfig
+  static Future<ImportData?> pickAndReadJsonFile() async {
     try {
       // 选择文件
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -23,8 +35,45 @@ class CourseImportService {
         // 解析JSON
         final jsonData = jsonDecode(contents);
 
-        // 验证JSON格式
-        if (jsonData is List) {
+        // 验证JSON格式 - 支持新格式 {courses: [...], timer: {...}}
+        if (jsonData is Map<String, dynamic>) {
+          // 新格式：包含courses数组和可选的timer对象
+          if (!jsonData.containsKey('courses') || jsonData['courses'] is! List) {
+            throw Exception('JSON数据格式不正确：缺少courses数组字段');
+          }
+
+          final List<Map<String, dynamic>> courseList = [];
+          final coursesData = jsonData['courses'] as List;
+
+          for (var item in coursesData) {
+            if (item is Map<String, dynamic>) {
+              // 验证必要字段
+              if (_validateCourseData(item)) {
+                courseList.add(item);
+              } else {
+                throw Exception('JSON数据格式不正确：课程数据缺少必要字段');
+              }
+            } else {
+              throw Exception('JSON数据格式不正确：courses应为对象数组');
+            }
+          }
+
+          // 解析可选的timer配置
+          ScheduleConfig? scheduleConfig;
+          if (jsonData.containsKey('timer') && jsonData['timer'] != null) {
+            if (jsonData['timer'] is Map<String, dynamic>) {
+              scheduleConfig = ScheduleConfig.fromJson(jsonData['timer']);
+            } else {
+              throw Exception('JSON数据格式不正确：timer应为对象格式');
+            }
+          }
+
+          return ImportData(
+            courses: courseList,
+            scheduleConfig: scheduleConfig,
+          );
+        } else if (jsonData is List) {
+          // 兼容旧格式：直接是课程数组
           final List<Map<String, dynamic>> courseList = [];
 
           for (var item in jsonData) {
@@ -40,9 +89,9 @@ class CourseImportService {
             }
           }
 
-          return courseList;
+          return ImportData(courses: courseList);
         } else {
-          throw Exception('JSON数据格式不正确：根元素应为数组');
+          throw Exception('JSON数据格式不正确：根元素应为对象或数组');
         }
       }
       
@@ -139,24 +188,47 @@ class CourseImportService {
 
   /// 生成示例JSON格式说明
   static String getExampleJsonFormat() {
-    final example = [
-      {
-        "name": "高等数学",
-        "position": "教学楼A101",
-        "teacher": "张教授",
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8],
-        "day": 1,
-        "sections": [1, 2]
-      },
-      {
-        "name": "大学英语",
-        "position": "教学楼B201",
-        "teacher": "李老师",
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8],
-        "day": 2,
-        "sections": [3, 4]
+    final example = {
+      "courses": [
+        {
+          "name": "高等数学",
+          "position": "教学楼A101",
+          "teacher": "张教授",
+          "weeks": [1, 2, 3, 4, 5, 6, 7, 8],
+          "day": 1,
+          "sections": [1, 2]
+        },
+        {
+          "name": "大学英语",
+          "position": "教学楼B201",
+          "teacher": "李老师",
+          "weeks": [1, 2, 3, 4, 5, 6, 7, 8],
+          "day": 2,
+          "sections": [3, 4]
+        }
+      ],
+      "timer": {
+        "totalWeek": 20,
+        "startSemester": "1694419200000",
+        "startWithSunday": false,
+        "showWeekend": false,
+        "forenoon": 4,
+        "afternoon": 4,
+        "night": 4,
+        "sections": [
+          {
+            "section": 1,
+            "startTime": "08:00",
+            "endTime": "08:50"
+          },
+          {
+            "section": 2,
+            "startTime": "09:00",
+            "endTime": "09:50"
+          }
+        ]
       }
-    ];
+    };
     
     return jsonEncode(example);
   }
@@ -201,12 +273,14 @@ class CourseImportService {
   /// 获取字段说明
   static Map<String, String> getFieldDescriptions() {
     return {
-      'name': '课程名称（字符串）',
-      'position': '上课地点（字符串）',
-      'teacher': '教师姓名（字符串）',
-      'weeks': '上课周数（整数数组，如[1,2,3,4]）',
-      'day': '星期几（整数，1-7表示周一到周日）',
-      'sections': '节次（整数数组，如[1,2]表示第1、2节课）',
+      'courses': '课程数组（必填，对象数组）',
+      'courses.name': '课程名称（字符串）',
+      'courses.position': '上课地点（字符串）',
+      'courses.teacher': '教师姓名（字符串）',
+      'courses.weeks': '上课周数（整数数组，如[1,2,3,4]）',
+      'courses.day': '星期几（整数，1-7表示周一到周日）',
+      'courses.sections': '节次（整数数组，如[1,2]表示第1、2节课）',
+      'timer': '时间表配置（可选，对象）',
     };
   }
 
@@ -222,5 +296,17 @@ class CourseImportService {
       'night': '晚间课程节数（可选，整数，0-10之间）',
       'sections': '节次时间列表（可选，对象数组）',
     };
+  }
+
+  /// 导出课程和时间表配置到JSON字符串
+  static String exportToJson({
+    required List<Course> courses,
+    required ScheduleConfig scheduleConfig,
+  }) {
+    final exportData = {
+      'courses': courses.map((course) => course.toJson()).toList(),
+      'timer': scheduleConfig.toJson(),
+    };
+    return jsonEncode(exportData);
   }
 }

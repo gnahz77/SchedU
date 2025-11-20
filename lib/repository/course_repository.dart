@@ -19,6 +19,8 @@ abstract class CourseRepository {
 /// 课程数据仓库实现
 class CourseRepositoryImpl implements CourseRepository {
   static const String _tableName = 'courses';
+  static const int _dbVersion = 2;
+  static const int _colorSlotCount = 12; // Keep in sync with AppColors palettes
   
   Database? _database;
 
@@ -36,7 +38,7 @@ class CourseRepositoryImpl implements CourseRepository {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: _dbVersion,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $_tableName(
@@ -46,22 +48,18 @@ class CourseRepositoryImpl implements CourseRepository {
             teacher TEXT NOT NULL,
             weeks TEXT NOT NULL,
             day INTEGER NOT NULL,
-            sections TEXT NOT NULL
+            sections TEXT NOT NULL,
+            color_id INTEGER
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE $_tableName ADD COLUMN color_id INTEGER');
+        }
+      },
     );
   }
-  /// 获取当前周数
-  Future<int> getCurrentWeek() async {
-    return await SettingsManager.instance.getCurrentWeek();
-  }
-
-  /// 设置当前周数
-  Future<void> setCurrentWeek(int week) async {
-    await SettingsManager.instance.setCurrentWeek(week);
-  }
-
   @override
   Future<List<Course>> getAllCourses() async {
     final db = await database;
@@ -72,9 +70,10 @@ class CourseRepositoryImpl implements CourseRepository {
   @override
   Future<void> insertCourse(Course course) async {
     final db = await database;
+    final normalized = _assignColorIdIfMissing(course);
     await db.insert(
       _tableName,
-      _courseToMap(course),
+      _courseToMap(normalized),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -82,9 +81,10 @@ class CourseRepositoryImpl implements CourseRepository {
   @override
   Future<void> updateCourse(Course course) async {
     final db = await database;
+    final normalized = _assignColorIdIfMissing(course);
     await db.update(
       _tableName,
-      _courseToMap(course),
+      _courseToMap(normalized),
       where: 'name = ? AND day = ? AND sections = ?',
       whereArgs: [
         course.name,
@@ -114,9 +114,10 @@ class CourseRepositoryImpl implements CourseRepository {
     final batch = db.batch();
     
     for (final course in courses) {
+      final normalized = _assignColorIdIfMissing(course);
       batch.insert(
         _tableName,
-        _courseToMap(course),
+        _courseToMap(normalized),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -154,7 +155,7 @@ class CourseRepositoryImpl implements CourseRepository {
       
       // 插入新的课程数据
       for (final json in jsonData) {
-        final course = Course.fromJson(json);
+        final course = _assignColorIdIfMissing(Course.fromJson(json));
         await txn.insert(
           _tableName,
           _courseToMap(course),
@@ -173,6 +174,7 @@ class CourseRepositoryImpl implements CourseRepository {
       'weeks': jsonEncode(course.weeks),
       'day': course.day,
       'sections': jsonEncode(course.sections),
+      'color_id': course.colorId,
     };
   }
 
@@ -185,6 +187,29 @@ class CourseRepositoryImpl implements CourseRepository {
       weeks: List<int>.from(jsonDecode(map['weeks'])),
       day: map['day'],
       sections: List<int>.from(jsonDecode(map['sections'])),
+      colorId: map['color_id'] as int?,
     );
+  }
+
+  Course _assignColorIdIfMissing(Course course) {
+    if (course.colorId != null || _colorSlotCount <= 0) {
+      return course;
+    }
+    final hash = _courseIdentityHash(course);
+    return course.copyWith(colorId: hash % _colorSlotCount);
+  }
+
+  int _courseIdentityHash(Course course) {
+    final buffer = StringBuffer()
+      ..write(course.name)
+      ..write('#')
+      ..write(course.teacher)
+      ..write('#')
+      ..write(course.position);
+    var hash = 0;
+    for (final codeUnit in buffer.toString().codeUnits) {
+      hash = (hash * 31 + codeUnit) & 0x7fffffff;
+    }
+    return hash;
   }
 }

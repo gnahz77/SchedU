@@ -1,12 +1,19 @@
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:schedu/model/course_bloc.dart';
-import 'package:schedu/model/course_event.dart';
-import 'package:schedu/model/course_state.dart';
+import 'package:schedu/bloc/course/course_bloc.dart';
+import 'package:schedu/bloc/settings/settings_bloc.dart';
+import 'package:schedu/bloc/settings/settings_event.dart';
+import 'package:schedu/bloc/settings/settings_state.dart';
+import 'package:schedu/model/course.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/repository/course_import_service.dart';
 import 'package:schedu/repository/settings_manager.dart';
+import '../../bloc/course/course_event.dart';
+import '../../bloc/course/course_state.dart';
+import 'SectionTimesSettingDialog.dart';
 
 /// 个人设置页面
 class ProfilePage extends StatelessWidget {
@@ -14,262 +21,204 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('我的'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 用户信息卡片
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: Icon(
-                      Icons.person,
-                      size: 36,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '学生用户',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+    return BlocBuilder<SettingsBloc, SettingsState>(
+      builder: (context, settingsState) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('我的'),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            elevation: 0,
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // 用户信息卡片
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        child: Icon(
+                          Icons.person,
+                          size: 36,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '点击编辑个人信息',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '学生用户',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '点击编辑个人信息',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ],
                   ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 课程设置分组
-          Text(
-            '课程设置',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          // 课程管理
-          _buildSettingItem(
-            context,
-            icon: Icons.school_outlined,
-            title: '课程管理',
-            subtitle: '添加、编辑、删除课程',
-            onTap: () {
-              // TODO: 导航到课程管理页面
-            },
-          ),
-          // 当前周设置
-          _buildSettingItem(
-            context,
-            icon: Icons.calendar_today_outlined,
-            title: '当前周设置',
-            subtitle: '设置当前是第几周',
-            onTap: () async {
-              _showWeekSettingDialog(context);
-            },
-          ),
-          // 学期总周数设置
-          _buildSettingItem(
-            context,
-            icon: Icons.date_range_outlined,
-            title: '学期总周数',
-            subtitle: '设置本学期总共有多少周',
-            onTap: () {
-              _showTotalWeeksSettingDialog(context);
-            },
-          ),
-          // 周末显示设置
-          _buildSettingItem(
-            context,
-            icon: Icons.weekend_outlined,
-            title: '周末显示',
-            subtitle: '设置是否在课程表中显示周末',
-            onTap: () async {
-              final result = await _showWeekendSettingDialog(context);
-              if (result == true) {
-                // 触发课程数据重新加载
-                context.read<CourseBloc>().add(const LoadCourses());
-              }
-            },
-          ),
-          // 课程时间段设置
-          _buildSettingItem(
-            context,
-            icon: Icons.access_time_outlined,
-            title: '课程时间段',
-            subtitle: '设置上午、下午、晚上的节数分配',
-            onTap: () {
-              _showTimePeriodSettingDialog(context);
-            },
-          ),
-          // 节次时间设置
-          _buildSettingItem(
-            context,
-            icon: Icons.timer_outlined,
-            title: '节次时间设置',
-            subtitle: '设置每节课的上下课时间',
-            onTap: () {
-              _showSectionTimesSettingDialog(context);
-            },
-          ),
+              
+              const SizedBox(height: 24),
+              
+              // 课程设置分组
+              Text(
+                '课程设置',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // 课程管理
+              _buildSettingItem(
+                context,
+                icon: Icons.school_outlined,
+                title: '课程管理',
+                subtitle: '添加、编辑、删除课程',
+                onTap: () {
+                  // TODO: 导航到课程管理页面
+                },
+              ),
+              // 开学时间设置
+              _buildStartSemesterSettingItem(context, settingsState.startSemesterDate),
+              // 学期总周数设置
+              _buildSettingItem(
+                context,
+                icon: Icons.calendar_view_week_outlined,
+                title: '学期总周数',
+                subtitle: '当前设置: ${settingsState.totalWeeks}周',
+                onTap: () => _showTotalWeeksSettingDialog(context, settingsState.totalWeeks),
+              ),
+              // 周末显示设置
+              _buildSettingItem(
+                context,
+                icon: Icons.weekend_outlined,
+                title: '显示周末',
+                subtitle: settingsState.showWeekend ? '已开启' : '已关闭',
+                onTap: () => _showWeekendSettingDialog(context, settingsState.showWeekend),
+              ),
+              // 每日节数设置
+              _buildSettingItem(
+                context,
+                icon: Icons.format_list_numbered_outlined,
+                title: '每日节数',
+                subtitle: '当前设置: ${settingsState.maxSections}节',
+                onTap: () => _showTimePeriodSettingDialog(
+                  context,
+                  settingsState.morningSections,
+                  settingsState.afternoonSections,
+                  settingsState.eveningSections,
+                ),
+              ),
+              // 上课时间设置
+              _buildSettingItem(
+                context,
+                icon: Icons.access_time_outlined,
+                title: '上课时间',
+                subtitle: '设置每节课的起止时间',
+                onTap: () => _showSectionTimesSettingDialog(
+                  context,
+                  settingsState.sectionTimes,
+                  settingsState.maxSections,
+                ),
+              ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          // 课程设置分组
-          Text(
-            '导入导出',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
+              // 数据管理分组
+              Text(
+                '数据管理',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
 
-          // 导入课程
-          _buildSettingItem(
-            context,
-            icon: Icons.data_object,
-            title: 'JSON课程导入',
-            subtitle: '从JSON文件导入课程数据',
-            onTap: () {
-              _showJsonImportDialog(context);
-            },
+              // 导入课程
+              _buildSettingItem(
+                context,
+                icon: Icons.file_download_outlined,
+                title: '导入课程',
+                subtitle: '支持JSON文件导入（可含时间表配置）',
+                onTap: () => _showJsonImportDialog(context),
+              ),
+              // 教务导入
+              _buildSettingItem(
+                context,
+                icon: Icons.language_outlined,
+                title: '教务导入',
+                subtitle: '从教务系统导入课程',
+                onTap: () => _showJwImportDialog(context),
+              ),
+              // 导出课程
+              _buildSettingItem(
+                context,
+                icon: Icons.file_upload_outlined,
+                title: '导出课程',
+                subtitle: '导出为JSON文件（含时间表配置）',
+                onTap: () => _showExportDialog(context),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 其他设置分组
+              Text(
+                '其他',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 主题设置
+              _buildSettingItem(
+                context,
+                icon: Icons.brightness_6_outlined,
+                title: '主题设置',
+                subtitle: _getThemeModeText(settingsState.themeMode),
+                onTap: () => _showThemeSettingDialog(context, settingsState.themeMode),
+              ),
+              // 关于应用
+              _buildSettingItem(
+                context,
+                icon: Icons.info_outline,
+                title: '关于应用',
+                subtitle: '版本 1.0.0',
+                onTap: () => _showAboutDialog(context),
+              ),
+              
+              const SizedBox(height: 32),
+            ],
           ),
-          // 导入时间表配置
-          _buildSettingItem(
-            context,
-            icon: Icons.schedule_outlined,
-            title: 'JSON时间表导入',
-            subtitle: '导入课程时间表配置（总周数、开学时间等）',
-            onTap: () {
-              _showScheduleConfigImportDialog(context);
-            },
-          ),
-          _buildSettingItem(
-            context,
-            icon: Icons.language_outlined,
-            title: '教务网站导入',
-            subtitle: '从学校教务系统导入课程数据',
-            onTap: () {
-              _showJwImportDialog(context);
-            },
-          ),
-          _buildSettingItem(
-            context,
-            icon: Icons.file_upload_outlined,
-            title: '导出课程',
-            subtitle: '导出课程数据到JSON文件',
-            onTap: () {
-              _showExportDialog(context);
-            },
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 应用设置分组
-          Text(
-            '应用设置',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          // 提醒设置
-          _buildSettingItem(
-            context,
-            icon: Icons.notifications_outlined,
-            title: '提醒设置',
-            subtitle: '设置课程提醒和通知',
-            onTap: () {
-              // TODO: 导航到提醒设置页面
-            },
-          ),
-          
-          // 主题设置
-          _buildSettingItem(
-            context,
-            icon: Icons.palette_outlined,
-            title: '主题设置',
-            subtitle: '切换浅色/深色主题',
-            onTap: () {
-              // TODO: 主题切换功能
-            },
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 其他分组
-          Text(
-            '其他',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          // 关于应用
-          _buildSettingItem(
-            context,
-            icon: Icons.info_outlined,
-            title: '关于应用',
-            subtitle: '版本信息和开发者信息',
-            onTap: () {
-              _showAboutDialog(context);
-            },
-          ),
-          
-          // 意见反馈
-          _buildSettingItem(
-            context,
-            icon: Icons.feedback_outlined,
-            title: '意见反馈',
-            subtitle: '帮助我们改进应用',
-            onTap: () {
-              // TODO: 意见反馈功能
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -313,63 +262,14 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// 显示周设置对话框
-  void _showWeekSettingDialog(BuildContext context) async {
-    int currentWeek = await SettingsManager.instance.getCurrentWeek();
-    int totalWeeks = await SettingsManager.instance.getTotalWeeks();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('设置当前周'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('请选择当前是第几周：'),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              value: currentWeek,
-              decoration: const InputDecoration(
-                labelText: '当前周',
-                border: OutlineInputBorder(),
-              ),
-              items: List.generate(totalWeeks, (index) => index + 1)
-                  .map((week) => DropdownMenuItem(
-                        value: week,
-                        child: Text('第$week周'),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  currentWeek = value;
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await SettingsManager.instance.setCurrentWeek(currentWeek);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('当前周已设置为第$currentWeek周')),
-              );
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
+  /// 开学日期设置项
+  Widget _buildStartSemesterSettingItem(BuildContext context, DateTime? startDate) {
+    return _StartSemesterSettingItem(startDate: startDate);
   }
 
   /// 显示学期总周数设置对话框
-  void _showTotalWeeksSettingDialog(BuildContext context) async {
-    int totalWeeks = await SettingsManager.instance.getTotalWeeks();
+  void _showTotalWeeksSettingDialog(BuildContext context, int currentTotalWeeks) {
+    int totalWeeks = currentTotalWeeks;
     
     showDialog(
       context: context,
@@ -406,8 +306,8 @@ class ProfilePage extends StatelessWidget {
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () async {
-              await SettingsManager.instance.setTotalWeeks(totalWeeks);
+            onPressed: () {
+              context.read<SettingsBloc>().add(UpdateTotalWeeks(totalWeeks));
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('学期总周数已设置为$totalWeeks周')),
@@ -421,10 +321,10 @@ class ProfilePage extends StatelessWidget {
   }
 
   /// 显示周末设置对话框
-  Future<bool?> _showWeekendSettingDialog(BuildContext context) async {
-    bool showWeekend = await SettingsManager.instance.getShowWeekend();
+  void _showWeekendSettingDialog(BuildContext context, bool currentShowWeekend) {
+    bool showWeekend = currentShowWeekend;
     
-    return showDialog<bool>(
+    showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
@@ -447,13 +347,13 @@ class ProfilePage extends StatelessWidget {
             ],          ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: () async {
-                await SettingsManager.instance.setShowWeekend(showWeekend);
-                Navigator.of(context).pop(true); // 返回true表示有设置变更
+              onPressed: () {
+                context.read<SettingsBloc>().add(UpdateShowWeekend(showWeekend));
+                Navigator.of(context).pop();
                 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -470,10 +370,15 @@ class ProfilePage extends StatelessWidget {
   }
 
   /// 显示时间段设置对话框
-  void _showTimePeriodSettingDialog(BuildContext context) async {
-    int morningSections = await SettingsManager.instance.getMorningSections();
-    int afternoonSections = await SettingsManager.instance.getAfternoonSections();
-    int eveningSections = await SettingsManager.instance.getEveningSections();
+  void _showTimePeriodSettingDialog(
+    BuildContext context,
+    int currentMorning,
+    int currentAfternoon,
+    int currentEvening,
+  ) {
+    int morningSections = currentMorning;
+    int afternoonSections = currentAfternoon;
+    int eveningSections = currentEvening;
     
     showDialog(
       context: context,
@@ -548,18 +453,16 @@ class ProfilePage extends StatelessWidget {
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () async {
-              await SettingsManager.instance.setMorningSections(morningSections);
-              await SettingsManager.instance.setAfternoonSections(afternoonSections);
-              await SettingsManager.instance.setEveningSections(eveningSections);
-              
-              // 更新总节数
-              final totalSections = morningSections + afternoonSections + eveningSections;
-              await SettingsManager.instance.setMaxSections(totalSections);
+            onPressed: () {
+              context.read<SettingsBloc>().add(UpdateSectionConfig(
+                morningSections,
+                afternoonSections,
+                eveningSections,
+              ));
               
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('时间段设置已保存')),
+                const SnackBar(content: Text('课程时间段设置已更新')),
               );
             },
             child: const Text('确定'),
@@ -570,148 +473,121 @@ class ProfilePage extends StatelessWidget {
   }
 
   /// 显示节次时间设置对话框
-  void _showSectionTimesSettingDialog(BuildContext context) async {
-    final sectionTimes = await SettingsManager.instance.getSectionTimesList();
-    final maxSections = await SettingsManager.instance.getMaxSections();
-    
-    // 创建一个副本用于编辑
-    List<SectionTime> editableSectionTimes = List.from(sectionTimes);
+  void _showSectionTimesSettingDialog(
+    BuildContext context,
+    List<SectionTime> currentSectionTimes,
+    int maxSections,
+  ) {
+    final settingsState = context.read<SettingsBloc>().state;
+    final editableSectionTimes = {
+      for (final sectionTime in currentSectionTimes) sectionTime.section: sectionTime,
+    };
 
-    // 确保有足够的节次
     for (int i = 1; i <= maxSections; i++) {
-      if (!editableSectionTimes.any((st) => st.section == i)) {
-        editableSectionTimes.add(SectionTime(
-          section: i,
-          startTime: '',
-          endTime: '',
-        ));
-      }
+      editableSectionTimes.putIfAbsent(
+        i,
+        () => SectionTime(section: i, startTime: '', endTime: ''),
+      );
     }
-
-    // 按节次排序
-    editableSectionTimes.sort((a, b) => a.section.compareTo(b.section));
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('节次时间设置'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: maxSections,
-            itemBuilder: (context, index) {
-              final section = index + 1;
-              final sectionTime = editableSectionTimes.firstWhere(
-                (st) => st.section == section,
-                orElse: () => SectionTime(section: section, startTime: '', endTime: ''),
-              );
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '第$section节',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: sectionTime.startTime,
-                              decoration: const InputDecoration(
-                                labelText: '开始时间',
-                                hintText: '08:00',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              onChanged: (value) {
-                                // 找到对应的节次并更新
-                                final index = editableSectionTimes.indexWhere((st) => st.section == section);
-                                if (index != -1) {
-                                  editableSectionTimes[index] = SectionTime(
-                                    section: section,
-                                    startTime: value,
-                                    endTime: editableSectionTimes[index].endTime,
-                                  );
-                                } else {
-                                  editableSectionTimes.add(SectionTime(
-                                    section: section,
-                                    startTime: value,
-                                    endTime: '',
-                                  ));
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: sectionTime.endTime,
-                              decoration: const InputDecoration(
-                                labelText: '结束时间',
-                                hintText: '08:45',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              onChanged: (value) {
-                                // 找到对应的节次并更新
-                                final index = editableSectionTimes.indexWhere((st) => st.section == section);
-                                if (index != -1) {
-                                  editableSectionTimes[index] = SectionTime(
-                                    section: section,
-                                    startTime: editableSectionTimes[index].startTime,
-                                    endTime: value,
-                                  );
-                                } else {
-                                  editableSectionTimes.add(SectionTime(
-                                    section: section,
-                                    startTime: '',
-                                    endTime: value,
-                                  ));
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              // 过滤掉空的时间设置
-              final validSectionTimes = editableSectionTimes.where((st) =>
-                st.startTime.isNotEmpty && st.endTime.isNotEmpty).toList();
-
-              await SettingsManager.instance.setSectionTimesList(validSectionTimes);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('节次时间设置已保存')),
-              );
-            },
-            child: const Text('确定'),
-          ),
-        ],
+      builder: (context) => SectionTimesSettingDialog(
+        editableSectionTimes: editableSectionTimes,
+        maxSections: maxSections,
+        morningSections: settingsState.morningSections,
+        afternoonSections: settingsState.afternoonSections,
+        eveningSections: settingsState.eveningSections,
+        onParseTimeOfDay: _parseTimeOfDay,
+        onFormatTimeOfDay: _formatTimeOfDay,
       ),
     );
   }
 
-  /// 显示JSON导入对话框
+  TimeOfDay? _parseTimeOfDay(String value) {
+    if (value.isEmpty) return null;
+    final parts = value.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _formatTimeOfDay(TimeOfDay value) {
+    final hours = value.hour.toString().padLeft(2, '0');
+    final minutes = value.minute.toString().padLeft(2, '0');
+    return '$hours:$minutes';
+  }
+
+  /// 显示主题设置对话框
+  void _showThemeSettingDialog(BuildContext context, ThemeMode currentThemeMode) {
+    ThemeMode selectedTheme = currentThemeMode;
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('主题设置'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<ThemeMode>(
+                title: const Text('跟随系统'),
+                value: ThemeMode.system,
+                groupValue: selectedTheme,
+                onChanged: (value) {
+                  setState(() => selectedTheme = value!);
+                },
+              ),
+              RadioListTile<ThemeMode>(
+                title: const Text('浅色模式'),
+                value: ThemeMode.light,
+                groupValue: selectedTheme,
+                onChanged: (value) {
+                  setState(() => selectedTheme = value!);
+                },
+              ),
+              RadioListTile<ThemeMode>(
+                title: const Text('深色模式'),
+                value: ThemeMode.dark,
+                groupValue: selectedTheme,
+                onChanged: (value) {
+                  setState(() => selectedTheme = value!);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                context.read<SettingsBloc>().add(UpdateThemeMode(selectedTheme));
+                Navigator.of(context).pop();
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getThemeModeText(ThemeMode themeMode) {
+    switch (themeMode) {
+      case ThemeMode.system:
+        return '跟随系统';
+      case ThemeMode.light:
+        return '浅色模式';
+      case ThemeMode.dark:
+        return '深色模式';
+    }
+  }
+
+  /// 显示JSON导入对话框（支持课程和时间表）
   void _showJsonImportDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -811,7 +687,46 @@ class ProfilePage extends StatelessWidget {
 
   /// 显示导出课程对话框
   void _showExportDialog(BuildContext context) {
-    // TODO: 实现导出课程功能
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('导出课程'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('将当前的课程数据和时间表配置导出为JSON文件。'),
+            SizedBox(height: 16),
+            Text(
+              '导出内容包括：',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 8),
+            Text('• 所有课程信息', style: TextStyle(fontSize: 12)),
+            Text('• 时间表配置（总周数、开学时间、节次时间等）', style: TextStyle(fontSize: 12)),
+            SizedBox(height: 12),
+            Text(
+              '导出的文件可用于备份或导入到其他设备。',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('取消'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              await _exportCoursesToFile(context);
+            },
+            icon: const Icon(Icons.download, size: 16),
+            label: const Text('导出'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 显示关于对话框
@@ -897,142 +812,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// 显示时间表配置导入对话框
-  void _showScheduleConfigImportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('导入时间表配置'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('选择包含时间表配置信息的JSON文件进行导入。'),
-              const SizedBox(height: 16),
-              const Text(
-                '支持的配置项：',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              ...CourseImportService.getScheduleConfigFieldDescriptions().entries.map(
-                (entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    '• ${entry.key}: ${entry.value}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showScheduleConfigExampleDialog(dialogContext),
-                      icon: const Icon(Icons.code, size: 16),
-                      label: const Text('查看示例'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Theme.of(dialogContext).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '注意：导入的配置将覆盖当前设置！',
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton.icon(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              await _importScheduleConfigFromFile(context);
-            },
-            icon: const Icon(Icons.file_upload, size: 16),
-            label: const Text('选择文件'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 显示时间表配置示例对话框
-  void _showScheduleConfigExampleDialog(BuildContext context) {
-    final exampleJson = CourseImportService.getScheduleConfigExampleFormat();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('时间表配置JSON示例'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '请按照以下格式准备JSON文件：',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.maxFinite,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: SelectableText(
-                  exampleJson,
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: exampleJson));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('已复制到剪贴板')),
-                        );
-                      },
-                      icon: const Icon(Icons.copy, size: 16),
-                      label: const Text('复制'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 从文件导入课程
+  /// 从文件导入课程（支持同时导入时间表配置）
   Future<void> _importCoursesFromFile(BuildContext context) async {
     try {
       // 显示加载对话框
@@ -1051,18 +831,24 @@ class ProfilePage extends StatelessWidget {
       );
 
       // 选择并读取JSON文件
-      final courseData = await CourseImportService.pickAndReadJsonFile();
+      final importData = await CourseImportService.pickAndReadJsonFile();
 
       // 关闭加载对话框
       Navigator.of(context).pop();
 
-      if (courseData != null) {
+      if (importData != null) {
+        // 构建确认信息
+        final hasTimer = importData.scheduleConfig != null;
+        final confirmMessage = hasTimer
+            ? '找到 ${importData.courses.length} 门课程和时间表配置，确定要导入吗？\n\n注意：这将清空现有的所有课程数据和时间表配置！'
+            : '找到 ${importData.courses.length} 门课程，确定要导入吗？\n\n注意：这将清空现有的所有课程数据！';
+
         // 确认导入对话框
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('确认导入'),
-            content: Text('找到 ${courseData.length} 门课程，确定要导入吗？\n\n注意：这将清空现有的所有课程数据！'),
+            content: Text(confirmMessage),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -1086,40 +872,64 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(width: 16),
-                  Text('正在导入课程...'),
+                  Text('正在导入数据...'),
                 ],
               ),
             ),
           );
 
-          // 执行导入
-          context.read<CourseBloc>().add(ImportCoursesFromJson(courseData));
-
-          // 监听导入结果
-          final subscription = context.read<CourseBloc>().stream.listen((state) {
-            if (state is CourseOperationSuccess) {
-              Navigator.of(context).pop(); // 关闭进度对话框
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            } else if (state is CourseError) {
-              Navigator.of(context).pop(); // 关闭进度对话框
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                ),
-              );
+          try {
+            // 先导入时间表配置（如果有）
+            if (importData.scheduleConfig != null) {
+              await SettingsManager.instance.importScheduleConfig(importData.scheduleConfig!);
+              if (context.mounted) {
+                context.read<SettingsBloc>().add(LoadSettings());
+              }
             }
-          });
 
-          // 5秒后自动取消订阅，防止内存泄漏
-          Future.delayed(const Duration(seconds: 5), () {
-            subscription.cancel();
-          });
+            // 导入课程数据
+            if (context.mounted) {
+              context.read<CourseBloc>().add(ImportCoursesFromJson(importData.courses));
+            }
+
+            // 监听导入结果
+            final subscription = context.read<CourseBloc>().stream.listen((state) {
+              if (state is CourseOperationSuccess) {
+                Navigator.of(context).pop(); // 关闭进度对话框
+                final successMessage = hasTimer
+                    ? '课程和时间表配置导入成功'
+                    : state.message;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(successMessage),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else if (state is CourseError) {
+                Navigator.of(context).pop(); // 关闭进度对话框
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            });
+
+            // 5秒后自动取消订阅，防止内存泄漏
+            Future.delayed(const Duration(seconds: 5), () {
+              subscription.cancel();
+            });
+          } catch (e) {
+            // 关闭进度对话框
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('导入失败: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     } catch (e, s) {
@@ -1134,8 +944,8 @@ class ProfilePage extends StatelessWidget {
     }
   }
 
-  /// 从文件导入时间表配置
-  Future<void> _importScheduleConfigFromFile(BuildContext context) async {
+  /// 导出课程到文件
+  Future<void> _exportCoursesToFile(BuildContext context) async {
     try {
       // 显示加载对话框
       showDialog(
@@ -1146,153 +956,160 @@ class ProfilePage extends StatelessWidget {
             children: [
               CircularProgressIndicator(),
               SizedBox(width: 16),
-              Text('正在处理文件...'),
+              Text('正在准备导出数据...'),
             ],
           ),
         ),
       );
 
-      // 选择并读取JSON文件
-      final configData = await CourseImportService.pickAndReadScheduleConfigFile();
+      // 获取所有课程
+      final courseState = context.read<CourseBloc>().state;
+      List<Course> courses = [];
+      if (courseState is CourseLoaded) {
+        courses = courseState.courses;
+      }
+
+      if (courses.isEmpty) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('没有课程数据可以导出'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // 获取时间表配置
+      final scheduleConfig = await SettingsManager.instance.exportScheduleConfig();
+
+      // 生成JSON字符串
+      final jsonString = CourseImportService.exportToJson(
+        courses: courses,
+        scheduleConfig: scheduleConfig,
+      );
+
+      // 转换为字节数据
+      final bytes = utf8.encode(jsonString);
 
       // 关闭加载对话框
       Navigator.of(context).pop();
 
-      if (configData != null) {
-        // 显示配置预览和确认对话框
-        final confirmed = await _showScheduleConfigPreviewDialog(context, configData);
+      // 使用file_picker保存文件
+      final result = await FilePicker.platform.saveFile(
+        dialogTitle: '保存课程数据',
+        fileName: 'schedu_export_${DateTime.now().millisecondsSinceEpoch}.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        bytes: bytes,
+      );
 
-        if (confirmed == true) {
-          // 显示导入进度对话框
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const AlertDialog(
-              content: Row(
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 16),
-                  Text('正在导入配置...'),
-                ],
-              ),
+      if (result != null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('导出成功：${courses.length}门课程'),
+              backgroundColor: Colors.green,
+              // action: SnackBarAction(
+              //   label: '查看',
+              //   textColor: Colors.white,
+              //   onPressed: () {
+              //     // TODO: 实现跳转打开文件
+              //   },
+              // ),
             ),
           );
-
-          try {
-            // 执行导入
-            await SettingsManager.instance.importScheduleConfig(configData);
-            
-            // 关闭进度对话框
-            Navigator.of(context).pop();
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('时间表配置导入成功'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } catch (e) {
-            // 关闭进度对话框
-            Navigator.of(context).pop();
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('导入配置失败: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
         }
       }
-    } catch (e) {
+    } catch (e, s) {
+      print(e);
+      print(s);
       // 确保关闭可能存在的加载对话框
-      Navigator.of(context).pop();
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('导出失败: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
+
+/// 开学日期设置卡片
+class _StartSemesterSettingItem extends StatelessWidget {
+  final DateTime? startDate;
+
+  const _StartSemesterSettingItem({this.startDate});
+
+  Future<void> _pickStartDate(BuildContext context) async {
+    final now = DateTime.now();
+    final initialDate = startDate ?? now;
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 5, 12, 31),
+    );
+
+    if (pickedDate == null) return;
+
+    final normalized = DateTime(pickedDate.year, pickedDate.month, pickedDate.day);
+    
+    if (context.mounted) {
+      context.read<SettingsBloc>().add(UpdateStartSemesterDate(normalized));
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('导入失败: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('开学日期已更新')),
       );
+
+      context.read<CourseBloc>().add(const LoadCourses());
     }
   }
 
-  /// 显示时间表配置预览对话框
-  Future<bool?> _showScheduleConfigPreviewDialog(BuildContext context, ScheduleConfig config) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认导入配置'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '即将导入以下配置项：',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              if (config.totalWeek != null)
-                _buildConfigItem('学期总周数', '${config.totalWeek}周'),
-              if (config.startSemester != null)
-                _buildConfigItem('开学时间', '时间戳: ${config.startSemester}'),
-              if (config.startWithSunday != null)
-                _buildConfigItem('周日起始', config.startWithSunday! ? '是' : '否'),
-              if (config.showWeekend != null)
-                _buildConfigItem('显示周末', config.showWeekend! ? '是' : '否'),
-              if (config.forenoon != null)
-                _buildConfigItem('上午节数', '${config.forenoon}节'),
-              if (config.afternoon != null)
-                _buildConfigItem('下午节数', '${config.afternoon}节'),
-              if (config.night != null)
-                _buildConfigItem('晚间节数', '${config.night}节'),
-              if (config.sections != null && config.sections!.isNotEmpty)
-                _buildConfigItem('节次时间', '${config.sections!.length}个节次'),
-              const SizedBox(height: 12),
-              const Text(
-                '注意：导入将覆盖相应的当前设置！',
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = startDate == null
+            ? '未设置开学日期，点击进行设置'
+            : '当前：${_formatDate(startDate!)}';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        leading: Icon(
+          Icons.calendar_month,
+          color: Theme.of(context).colorScheme.primary,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('确定导入'),
-          ),
-        ],
+        title: Text(
+          '开学日期设置',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        onTap: () => _pickStartDate(context),
       ),
     );
   }
 
-  /// 构建配置项显示
-  Widget _buildConfigItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}年$month月$day日';
   }
 }

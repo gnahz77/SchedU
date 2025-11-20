@@ -48,4 +48,36 @@ class AppColors {
   static const Color darkLessonTile = Color(0xFF1C3333);
   static const Color darkLessonTileBorder = Color(0xFF2D5151);
   static const Color darkTodayIndicator = Color(0xFF00A3A3);
+
+  // Preset palette for lesson tiles (used to vary course background colors)
+  static const List<Color> lessonTilePalette = [
+    Color(0xFFB3E5FC),
+    Color(0xFFB2DFDB),
+    Color(0xFFFFF59D),
+    Color(0xFFFFCCBC),
+    Color(0xFFD1C4E9),
+    Color(0xFFE6EE9C),
+    Color(0xFF81D4FA),
+    Color(0xFFFFAB91),
+    Color(0xFFC5E1A5),
+    Color(0xFFFFF176),
+    Color(0xFFB39DDB),
+    Color(0xFF80CBC4),
+  ];
+
+  // Dark theme counterparts for lesson tiles (indexes align with light palette)
+  static const List<Color> darkLessonTilePalette = [
+    Color(0xFF274C5E),
+    Color(0xFF1D4B44),
+    Color(0xFF5C521F),
+    Color(0xFF5E3A2C),
+    Color(0xFF493D63),
+    Color(0xFF485227),
+    Color(0xFF1F4A63),
+    Color(0xFF5B2F24),
+    Color(0xFF3C4D29),
+    Color(0xFF4F471C),
+    Color(0xFF34294E),
+    Color(0xFF1F4B46),
+  ];
 }

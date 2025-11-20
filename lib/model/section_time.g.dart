@@ -7,7 +7,7 @@ part of 'section_time.dart';
 // **************************************************************************
 
 SectionTime _$SectionTimeFromJson(Map<String, dynamic> json) => SectionTime(
-      section: json['section'] as int,
+      section: (json['section'] as num).toInt(),
       startTime: json['startTime'] as String,
       endTime: json['endTime'] as String,
     );
@@ -21,13 +21,13 @@ Map<String, dynamic> _$SectionTimeToJson(SectionTime instance) =>
 
 ScheduleConfig _$ScheduleConfigFromJson(Map<String, dynamic> json) =>
     ScheduleConfig(
-      totalWeek: json['totalWeek'] as int?,
+      totalWeek: (json['totalWeek'] as num?)?.toInt(),
       startSemester: json['startSemester'] as String?,
       startWithSunday: json['startWithSunday'] as bool?,
       showWeekend: json['showWeekend'] as bool?,
-      forenoon: json['forenoon'] as int?,
-      afternoon: json['afternoon'] as int?,
-      night: json['night'] as int?,
+      forenoon: (json['forenoon'] as num?)?.toInt(),
+      afternoon: (json['afternoon'] as num?)?.toInt(),
+      night: (json['night'] as num?)?.toInt(),
       sections: (json['sections'] as List<dynamic>?)
           ?.map((e) => SectionTime.fromJson(e as Map<String, dynamic>))
           .toList(),

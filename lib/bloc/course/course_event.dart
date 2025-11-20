@@ -54,22 +54,3 @@ class ImportCoursesFromJson extends CourseEvent {
   List<Object?> get props => [jsonData];
 }
 
-/// 获取指定日期的课程
-class LoadCoursesForDay extends CourseEvent {
-  final DateTime date;
-
-  const LoadCoursesForDay(this.date);
-
-  @override
-  List<Object?> get props => [date];
-}
-
-/// 获取指定周的课程
-class LoadCoursesForWeek extends CourseEvent {
-  final DateTime weekStart;
-
-  const LoadCoursesForWeek(this.weekStart);
-
-  @override
-  List<Object?> get props => [weekStart];
-}

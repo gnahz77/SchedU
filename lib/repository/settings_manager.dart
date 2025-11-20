@@ -4,7 +4,6 @@ import 'package:schedu/model/section_time.dart';
 
 /// 应用设置管理器
 class SettingsManager {
-  static const String _keyCurrentWeek = 'current_week';
   static const String _keyTotalWeeks = 'total_weeks';
   static const String _keyMaxSections = 'max_sections';
   static const String _keyThemeMode = 'theme_mode';
@@ -28,16 +27,9 @@ class SettingsManager {
     _prefs ??= await SharedPreferences.getInstance();
   }
 
-  /// 获取当前周数
+  /// 获取当前周数（基于开学时间计算）
   Future<int> getCurrentWeek() async {
-    await init();
-    return _prefs?.getInt(_keyCurrentWeek) ?? 1;
-  }
-
-  /// 设置当前周数
-  Future<void> setCurrentWeek(int week) async {
-    await init();
-    await _prefs?.setInt(_keyCurrentWeek, week);
+    return getWeekNumberForDate(DateTime.now());
   }
 
   /// 获取本学期总周数
@@ -130,6 +122,16 @@ class SettingsManager {
     return _prefs?.getString(_keyStartSemester);
   }
 
+  /// 获取开学日期（无时间部分）
+  Future<DateTime?> getStartSemesterDate() async {
+    final timestamp = await getStartSemester();
+    if (timestamp == null) return null;
+    final millis = int.tryParse(timestamp);
+    if (millis == null) return null;
+    final date = DateTime.fromMillisecondsSinceEpoch(millis);
+    return _normalizeDate(date);
+  }
+
   /// 设置开学时间
   Future<void> setStartSemester(String? timestamp) async {
     await init();
@@ -175,6 +177,28 @@ class SettingsManager {
     await init();
     final timesString = jsonEncode(sectionTimes.map((st) => st.toJson()).toList());
     await _prefs?.setString(_keySectionTimes, timesString);
+  }
+
+  /// 根据指定日期计算所在周数
+  Future<int> getWeekNumberForDate(DateTime date) async {
+    await init();
+    final startDate = await getStartSemesterDate();
+    if (startDate == null) {
+      return 1;
+    }
+
+    final normalizedTarget = _normalizeDate(date);
+    final diffDays = normalizedTarget.difference(startDate).inDays;
+    if (diffDays < 0) {
+      return 1;
+    }
+
+    final calculatedWeek = (diffDays ~/ 7) + 1;
+    final totalWeeks = await getTotalWeeks();
+    if (calculatedWeek > totalWeeks) {
+      return totalWeeks;
+    }
+    return calculatedWeek;
   }
 
   /// 导入时间表配置
@@ -275,5 +299,32 @@ class SettingsManager {
       const SectionTime(section: 11, startTime: '20:50', endTime: '21:35'),
       const SectionTime(section: 12, startTime: '21:45', endTime: '22:30'),
     ];
+  }
+
+  DateTime _normalizeDate(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  /// 导出当前时间表配置
+  Future<ScheduleConfig> exportScheduleConfig() async {
+    await init();
+    
+    final totalWeek = await getTotalWeeks();
+    final startSemester = await getStartSemester();
+    final startWithSunday = await getStartWithSunday();
+    final showWeekend = await getShowWeekend();
+    final forenoon = await getMorningSections();
+    final afternoon = await getAfternoonSections();
+    final night = await getEveningSections();
+    final sections = await getSectionTimesList();
+
+    return ScheduleConfig(
+      totalWeek: totalWeek,
+      startSemester: startSemester,
+      startWithSunday: startWithSunday,
+      showWeekend: showWeekend,
+      forenoon: forenoon,
+      afternoon: afternoon,
+      night: night,
+      sections: sections,
+    );
   }
 }
