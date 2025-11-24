@@ -181,6 +181,7 @@ class _DailyCoursePageState extends State<DailyCoursePage>
     final timeText = classTimeText.isNotEmpty ? classTimeText : course.timeText;
     final status = _getCourseStatus(course, checkDate, settings);
     final isFinished = status == CourseStatus.finished;
+    final isOngoing = status == CourseStatus.ongoing;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -279,6 +280,10 @@ class _DailyCoursePageState extends State<DailyCoursePage>
                           ),
                     ),
                   ],
+                  if (isOngoing) ...[
+                    const SizedBox(width: 8),
+                    _buildOngoingIndicator(),
+                  ],
                 ],
               ),
             ],
@@ -287,6 +292,54 @@ class _DailyCoursePageState extends State<DailyCoursePage>
       ),
     );
   }
+
+  /// 构建上课中指示器
+  Widget _buildOngoingIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.error,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildPulsingDot(),
+          const SizedBox(width: 4),
+          Text(
+            '上课中',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onError,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建脉动圆点
+  Widget _buildPulsingDot() => TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.5, end: 1.0),
+      duration: const Duration(milliseconds: 800),
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: value,
+          child: Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onError,
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      },
+      onEnd: () {
+        if (mounted) {
+          setState(() {});
+        }
+      });
 
   Widget _buildTomorrowPreview(List<Course> tomorrowCourses, SettingsState settings) {
     final sortedCourses = List<Course>.from(tomorrowCourses)
