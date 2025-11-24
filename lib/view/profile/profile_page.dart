@@ -13,7 +13,7 @@ import 'package:schedu/repository/course_import_service.dart';
 import 'package:schedu/repository/settings_manager.dart';
 import '../../bloc/course/course_event.dart';
 import '../../bloc/course/course_state.dart';
-import 'SectionTimesSettingDialog.dart';
+import 'section_times_dialog.dart';
 
 /// 个人设置页面
 class ProfilePage extends StatelessWidget {
@@ -650,7 +650,7 @@ class ProfilePage extends StatelessWidget {
               Navigator.of(dialogContext).pop();
               await _importCoursesFromFile(context);
             },
-            icon: const Icon(Icons.file_upload, size: 16),
+            icon: const Icon(Icons.download, size: 16),
             label: const Text('选择文件'),
           ),
         ],
@@ -721,7 +721,7 @@ class ProfilePage extends StatelessWidget {
               Navigator.of(dialogContext).pop();
               await _exportCoursesToFile(context);
             },
-            icon: const Icon(Icons.download, size: 16),
+            icon: const Icon(Icons.upload, size: 16),
             label: const Text('导出'),
           ),
         ],

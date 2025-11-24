@@ -37,17 +37,17 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
   TimeOfDay _morningStartTime = const TimeOfDay(hour: 8, minute: 0);
   int _morningClassDuration = 45;
   int _morningBreakDuration = 10;
-  int _morningExtraBreakDuration = 0;
+  int _morningBigBreakDuration = 0;
 
   TimeOfDay _afternoonStartTime = const TimeOfDay(hour: 14, minute: 0);
   int _afternoonClassDuration = 45;
   int _afternoonBreakDuration = 10;
-  int _afternoonExtraBreakDuration = 0;
+  int _afternoonBigBreakDuration = 0;
 
   TimeOfDay _eveningStartTime = const TimeOfDay(hour: 19, minute: 0);
   int _eveningClassDuration = 45;
   int _eveningBreakDuration = 10;
-  int _eveningExtraBreakDuration = 0;
+  int _eveningBigBreakDuration = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +196,7 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
               startTime: _morningStartTime,
               classDuration: _morningClassDuration,
               breakDuration: _morningBreakDuration,
-              extraBreakDuration: _morningExtraBreakDuration,
+              extraBreakDuration: _morningBigBreakDuration,
               onStartTimeChanged: (time) {
                 setState(() => _morningStartTime = time);
               },
@@ -207,7 +207,7 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
                 setState(() => _morningBreakDuration = duration);
               },
               onExtraBreakDurationChanged: (duration) {
-                setState(() => _morningExtraBreakDuration = duration);
+                setState(() => _morningBigBreakDuration = duration);
               },
             ),
             const SizedBox(height: 12),
@@ -220,7 +220,7 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
               startTime: _afternoonStartTime,
               classDuration: _afternoonClassDuration,
               breakDuration: _afternoonBreakDuration,
-              extraBreakDuration: _afternoonExtraBreakDuration,
+              extraBreakDuration: _afternoonBigBreakDuration,
               onStartTimeChanged: (time) {
                 setState(() => _afternoonStartTime = time);
               },
@@ -231,7 +231,7 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
                 setState(() => _afternoonBreakDuration = duration);
               },
               onExtraBreakDurationChanged: (duration) {
-                setState(() => _afternoonExtraBreakDuration = duration);
+                setState(() => _afternoonBigBreakDuration = duration);
               },
             ),
             const SizedBox(height: 12),
@@ -244,7 +244,7 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
               startTime: _eveningStartTime,
               classDuration: _eveningClassDuration,
               breakDuration: _eveningBreakDuration,
-              extraBreakDuration: _eveningExtraBreakDuration,
+              extraBreakDuration: _eveningBigBreakDuration,
               onStartTimeChanged: (time) {
                 setState(() => _eveningStartTime = time);
               },
@@ -255,7 +255,7 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
                 setState(() => _eveningBreakDuration = duration);
               },
               onExtraBreakDurationChanged: (duration) {
-                setState(() => _eveningExtraBreakDuration = duration);
+                setState(() => _eveningBigBreakDuration = duration);
               },
             ),
           ],
@@ -459,8 +459,10 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
         );
 
         currentSection++;
-        final additional = (i % 2 == 1) ? _morningExtraBreakDuration : 0;
-        currentTime = _addMinutes(endTime, _morningBreakDuration + additional);
+        final breakToUse = (i % 2 == 1 && _morningBigBreakDuration > 0)
+            ? _morningBigBreakDuration
+            : _morningBreakDuration;
+        currentTime = _addMinutes(endTime, breakToUse);
       }
     }
 
@@ -478,8 +480,10 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
         );
 
         currentSection++;
-        final additional = (i % 2 == 1) ? _afternoonExtraBreakDuration : 0;
-        currentTime = _addMinutes(endTime, _afternoonBreakDuration + additional);
+        final breakToUse = (i % 2 == 1 && _afternoonBigBreakDuration > 0)
+            ? _afternoonBigBreakDuration
+            : _afternoonBreakDuration;
+        currentTime = _addMinutes(endTime, breakToUse);
       }
     }
 
@@ -497,8 +501,10 @@ class SectionTimesSettingDialogState extends State<SectionTimesSettingDialog> {
         );
 
         currentSection++;
-        final additional = (i % 2 == 1) ? _eveningExtraBreakDuration : 0;
-        currentTime = _addMinutes(endTime, _eveningBreakDuration + additional);
+        final breakToUse = (i % 2 == 1 && _eveningBigBreakDuration > 0)
+            ? _eveningBigBreakDuration
+            : _eveningBreakDuration;
+        currentTime = _addMinutes(endTime, breakToUse);
       }
     }
   }
