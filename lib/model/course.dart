@@ -4,13 +4,6 @@ import 'package:schedu/model/section_time.dart';
 
 part 'course.g.dart';
 
-/// 课程状态枚举
-enum CourseStatus {
-  notStarted,  // 未开始
-  ongoing,     // 进行中
-  finished,    // 已结束
-}
-
 /// 课程模型类
 @JsonSerializable()
 class Course extends Equatable {

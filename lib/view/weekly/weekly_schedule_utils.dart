@@ -8,6 +8,17 @@ class WeeklyScheduleUtils {
     return date.subtract(Duration(days: weekday - 1));
   }
 
+  /// 计算当前周（基于开学日期）
+  static int calculateCurrentWeek(DateTime? startSemester) {
+    if (startSemester == null) return 1;
+    final now = DateTime.now();
+    final d = DateTime(now.year, now.month, now.day);
+    final s = DateTime(startSemester.year, startSemester.month, startSemester.day);
+    final diff = d.difference(s).inDays;
+    if (diff < 0) return 1;
+    return (diff / 7).floor() + 1;
+  }
+
   /// 格式化周范围显示
   static String formatWeekRange(DateTime weekStart) {
     final weekEnd = weekStart.add(const Duration(days: 6));

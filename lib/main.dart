@@ -8,12 +8,15 @@ import 'package:schedu/bloc/settings/settings_bloc.dart';
 import 'package:schedu/bloc/settings/settings_event.dart';
 import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/bloc/course/course_bloc.dart';
+import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
+import 'package:schedu/bloc/daily_course/daily_course_event.dart';
+import 'package:schedu/bloc/weekly_course/weekly_course_bloc.dart';
+import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
 import 'package:schedu/repository/course_repository.dart';
 import 'package:schedu/repository/settings_manager.dart';
 import 'package:schedu/style/theme.dart';
 import 'package:schedu/view/route_names.dart';
 import 'package:schedu/view/routes.dart';
-import 'bloc/course/course_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,12 +46,19 @@ class MyApp extends StatelessWidget {
           create: (context) => SettingsBloc(SettingsManager.instance)..add(LoadSettings()),
         ),
         BlocProvider(
-          create: (context) {
-            final bloc = CourseBloc(CourseRepositoryImpl());
-            // 启动时加载所有课程数据
-            bloc.add(const LoadCourses());
-            return bloc;
-          },
+          create: (context) => CourseBloc(CourseRepositoryImpl()),
+        ),
+        BlocProvider(
+          create: (context) => DailyCourseBloc(
+            CourseRepositoryImpl(),
+            SettingsManager.instance,
+          )..add(const LoadDailyCourses()),
+        ),
+        BlocProvider(
+          create: (context) => WeeklyCourseBloc(
+            CourseRepositoryImpl(),
+            SettingsManager.instance,
+          )..add(const RefreshWeeklyCourses()),
         ),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(

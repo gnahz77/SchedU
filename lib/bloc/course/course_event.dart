@@ -6,14 +6,6 @@ abstract class CourseEvent extends Equatable {
   const CourseEvent();
 }
 
-/// 加载所有课程
-class LoadCourses extends CourseEvent {
-  const LoadCourses();
-
-  @override
-  List<Object?> get props => [];
-}
-
 /// 添加课程
 class AddCourse extends CourseEvent {
   final Course course;
@@ -52,5 +44,21 @@ class ImportCoursesFromJson extends CourseEvent {
 
   @override
   List<Object?> get props => [jsonData];
+}
+
+/// 从文件导入课程（包含时间表配置）
+class ImportCoursesFromFile extends CourseEvent {
+  const ImportCoursesFromFile();
+
+  @override
+  List<Object?> get props => [];
+}
+
+/// 导出课程到文件
+class ExportCoursesToFile extends CourseEvent {
+  const ExportCoursesToFile();
+
+  @override
+  List<Object?> get props => [];
 }
 

@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:schedu/model/course.dart';
 
 /// 课程状态的基类
 abstract class CourseState extends Equatable {
@@ -12,30 +11,14 @@ class CourseInitial extends CourseState {
   List<Object?> get props => [];
 }
 
-/// 加载中
-class CourseLoading extends CourseState {
-  @override
-  List<Object?> get props => [];
-}
-
-/// 加载成功
-class CourseLoaded extends CourseState {
-  final List<Course> courses;
-
-  const CourseLoaded(this.courses);
-
-  @override
-  List<Object?> get props => [courses];
-}
-
 /// 操作成功
-class CourseOperationSuccess extends CourseLoaded {
+class CourseOperationSuccess extends CourseState {
   final String message;
 
-  const CourseOperationSuccess(this.message, List<Course> courses) : super(courses);
+  const CourseOperationSuccess(this.message);
 
   @override
-  List<Object?> get props => [message, courses];
+  List<Object?> get props => [message];
 }
 
 /// 错误状态
@@ -46,4 +29,44 @@ class CourseError extends CourseState {
 
   @override
   List<Object?> get props => [message];
+}
+
+/// 正在处理中（用于导入导出）
+class CourseProcessing extends CourseState {
+  final String message;
+
+  const CourseProcessing(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+/// 需要确认导入
+class CourseImportConfirmation extends CourseState {
+  final int courseCount;
+  final bool hasScheduleConfig;
+  final dynamic importData;
+
+  const CourseImportConfirmation({
+    required this.courseCount,
+    required this.hasScheduleConfig,
+    required this.importData,
+  });
+
+  @override
+  List<Object?> get props => [courseCount, hasScheduleConfig, importData];
+}
+
+/// 导出成功
+class CourseExportSuccess extends CourseState {
+  final String jsonData;
+  final int courseCount;
+
+  const CourseExportSuccess({
+    required this.jsonData,
+    required this.courseCount,
+  });
+
+  @override
+  List<Object?> get props => [jsonData, courseCount];
 }

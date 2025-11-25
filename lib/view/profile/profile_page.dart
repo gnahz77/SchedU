@@ -1,22 +1,21 @@
-import 'dart:convert';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:schedu/bloc/course/course_bloc.dart';
+import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
+import 'package:schedu/bloc/daily_course/daily_course_event.dart';
 import 'package:schedu/bloc/settings/settings_bloc.dart';
 import 'package:schedu/bloc/settings/settings_event.dart';
 import 'package:schedu/bloc/settings/settings_state.dart';
-import 'package:schedu/model/course.dart';
+import 'package:schedu/bloc/weekly_course/weekly_course_bloc.dart';
+import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/repository/course_import_service.dart';
-import 'package:schedu/repository/settings_manager.dart';
-import '../../bloc/course/course_event.dart';
-import '../../bloc/course/course_state.dart';
+
+import 'profile_page_import_export.dart';
 import 'section_times_dialog.dart';
 
 /// 个人设置页面
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatelessWidget with ImportExportMixin {
   const ProfilePage({super.key});
 
   @override
@@ -648,7 +647,7 @@ class ProfilePage extends StatelessWidget {
           FilledButton.icon(
             onPressed: () async {
               Navigator.of(dialogContext).pop();
-              await _importCoursesFromFile(context);
+              await importCoursesFromFile(context);
             },
             icon: const Icon(Icons.download, size: 16),
             label: const Text('选择文件'),
@@ -719,7 +718,7 @@ class ProfilePage extends StatelessWidget {
           FilledButton.icon(
             onPressed: () async {
               Navigator.of(dialogContext).pop();
-              await _exportCoursesToFile(context);
+              await exportCoursesToFile(context);
             },
             icon: const Icon(Icons.upload, size: 16),
             label: const Text('导出'),
@@ -811,231 +810,6 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-
-  /// 从文件导入课程（支持同时导入时间表配置）
-  Future<void> _importCoursesFromFile(BuildContext context) async {
-    try {
-      // 显示加载对话框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('正在处理文件...'),
-            ],
-          ),
-        ),
-      );
-
-      // 选择并读取JSON文件
-      final importData = await CourseImportService.pickAndReadJsonFile();
-
-      // 关闭加载对话框
-      Navigator.of(context).pop();
-
-      if (importData != null) {
-        // 构建确认信息
-        final hasTimer = importData.scheduleConfig != null;
-        final confirmMessage = hasTimer
-            ? '找到 ${importData.courses.length} 门课程和时间表配置，确定要导入吗？\n\n注意：这将清空现有的所有课程数据和时间表配置！'
-            : '找到 ${importData.courses.length} 门课程，确定要导入吗？\n\n注意：这将清空现有的所有课程数据！';
-
-        // 确认导入对话框
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('确认导入'),
-            content: Text(confirmMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('确定导入'),
-              ),
-            ],
-          ),
-        );
-
-        if (confirmed == true) {
-          // 显示导入进度对话框
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const AlertDialog(
-              content: Row(
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 16),
-                  Text('正在导入数据...'),
-                ],
-              ),
-            ),
-          );
-
-          try {
-            // 先导入时间表配置（如果有）
-            if (importData.scheduleConfig != null) {
-              await SettingsManager.instance.importScheduleConfig(importData.scheduleConfig!);
-              if (context.mounted) {
-                context.read<SettingsBloc>().add(LoadSettings());
-              }
-            }
-
-            // 导入课程数据
-            if (context.mounted) {
-              context.read<CourseBloc>().add(ImportCoursesFromJson(importData.courses));
-            }
-
-            // 监听导入结果
-            final subscription = context.read<CourseBloc>().stream.listen((state) {
-              if (state is CourseOperationSuccess) {
-                Navigator.of(context).pop(); // 关闭进度对话框
-                final successMessage = hasTimer
-                    ? '课程和时间表配置导入成功'
-                    : state.message;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(successMessage),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } else if (state is CourseError) {
-                Navigator.of(context).pop(); // 关闭进度对话框
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            });
-
-            // 5秒后自动取消订阅，防止内存泄漏
-            Future.delayed(const Duration(seconds: 5), () {
-              subscription.cancel();
-            });
-          } catch (e) {
-            // 关闭进度对话框
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('导入失败: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      }
-    } catch (e, s) {
-      print(e);
-      print(s);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('导入失败: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  /// 导出课程到文件
-  Future<void> _exportCoursesToFile(BuildContext context) async {
-    try {
-      // 显示加载对话框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('正在准备导出数据...'),
-            ],
-          ),
-        ),
-      );
-
-      // 获取所有课程
-      final courseState = context.read<CourseBloc>().state;
-      List<Course> courses = [];
-      if (courseState is CourseLoaded) {
-        courses = courseState.courses;
-      }
-
-      if (courses.isEmpty) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('没有课程数据可以导出'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
-      // 获取时间表配置
-      final scheduleConfig = await SettingsManager.instance.exportScheduleConfig();
-
-      // 生成JSON字符串
-      final jsonString = CourseImportService.exportToJson(
-        courses: courses,
-        scheduleConfig: scheduleConfig,
-      );
-
-      // 转换为字节数据
-      final bytes = utf8.encode(jsonString);
-
-      // 关闭加载对话框
-      Navigator.of(context).pop();
-
-      // 使用file_picker保存文件
-      final result = await FilePicker.platform.saveFile(
-        dialogTitle: '保存课程数据',
-        fileName: 'schedu_export_${DateTime.now().millisecondsSinceEpoch}.json',
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        bytes: bytes,
-      );
-
-      if (result != null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('导出成功：${courses.length}门课程'),
-              backgroundColor: Colors.green,
-              // action: SnackBarAction(
-              //   label: '查看',
-              //   textColor: Colors.white,
-              //   onPressed: () {
-              //     // TODO: 实现跳转打开文件
-              //   },
-              // ),
-            ),
-          );
-        }
-      }
-    } catch (e, s) {
-      print(e);
-      print(s);
-      // 确保关闭可能存在的加载对话框
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('导出失败: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 }
 
 /// 开学日期设置卡片
@@ -1065,7 +839,9 @@ class _StartSemesterSettingItem extends StatelessWidget {
         const SnackBar(content: Text('开学日期已更新')),
       );
 
-      context.read<CourseBloc>().add(const LoadCourses());
+      // 刷新课程视图
+      context.read<DailyCourseBloc>().add(const RefreshDailyCourses());
+      context.read<WeeklyCourseBloc>().add(const RefreshWeeklyCourses());
     }
   }
 

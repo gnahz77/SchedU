@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:schedu/bloc/settings/settings_bloc.dart';
 import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/model/course.dart';
-import 'package:schedu/bloc/course/course_bloc.dart';
-import '../../bloc/course/course_event.dart';
-import '../../bloc/course/course_state.dart';
+import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
+import 'package:schedu/bloc/daily_course/daily_course_event.dart';
+import 'package:schedu/bloc/daily_course/daily_course_state.dart';
 import '../../model/section_time.dart';
 
 /// 当日课程视图页面
@@ -35,16 +35,12 @@ class _DailyCoursePageState extends State<DailyCoursePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed && mounted) {
-      context.read<CourseBloc>().add(const LoadCourses());
-      setState(() {}); // force rebuild to refresh "today" timestamp
+      context.read<DailyCourseBloc>().add(const RefreshDailyCourses());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final today = _startOfDay(DateTime.now());
-    final tomorrow = today.add(const Duration(days: 1));
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('今日课程'),
@@ -52,91 +48,65 @@ class _DailyCoursePageState extends State<DailyCoursePage>
         foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          // 日期展示
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 0.5,
-                ),
-              ),
-            ),
-            child: Text(
-              _formatDate(today),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+      body: BlocBuilder<DailyCourseBloc, DailyCourseState>(
+        builder: (context, dailyState) {
+          if (dailyState is DailyCourseLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (dailyState is DailyCourseLoaded) {
+            return Column(
+              children: [
+                // 日期展示
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 0.5,
+                      ),
+                    ),
                   ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          // 课程列表
-          Expanded(
-            child: BlocBuilder<SettingsBloc, SettingsState>(
-              builder: (context, settingsState) {
-                return BlocBuilder<CourseBloc, CourseState>(
-                  builder: (context, courseState) {
-                    if (courseState is CourseLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (courseState is CourseLoaded) {
-                      final todayCourses = _filterCourses(
-                        courseState.courses,
-                        today,
-                        settingsState.startSemesterDate,
-                      );
-                      final tomorrowCourses = _filterCourses(
-                        courseState.courses,
-                        tomorrow,
-                        settingsState.startSemesterDate,
-                      );
+                  child: Text(
+                    _formatDate(dailyState.today),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                // 课程列表
+                Expanded(
+                  child: BlocBuilder<SettingsBloc, SettingsState>(
+                    builder: (context, settingsState) {
                       return _buildCourseContent(
-                        todayCourses: todayCourses,
-                        tomorrowCourses: tomorrowCourses,
+                        todayCourses: dailyState.todayCourses,
+                        tomorrowCourses: dailyState.tomorrowCourses,
+                        sectionTimes: dailyState.sectionTimes,
                         settings: settingsState,
-                        today: today,
+                        today: dailyState.today,
                       );
-                    } else if (courseState is CourseError) {
-                      return _buildErrorState(courseState.message);
-                    }
-                    return _buildEmptyState();
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+                    },
+                  ),
+                ),
+              ],
+            );
+          } else if (dailyState is DailyCourseError) {
+            return _buildErrorState(dailyState.message);
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
       ),
     );
   }
 
-  List<Course> _filterCourses(List<Course> allCourses, DateTime date, DateTime? startSemester) {
-    final weekNumber = _calculateWeekNumber(date, startSemester);
-    final weekday = date.weekday;
-    return allCourses.where((course) {
-      return course.day == weekday && course.weeks.contains(weekNumber);
-    }).toList();
-  }
-
-  int _calculateWeekNumber(DateTime date, DateTime? startSemester) {
-    if (startSemester == null) return 1;
-    final d = DateTime(date.year, date.month, date.day);
-    final s = DateTime(startSemester.year, startSemester.month, startSemester.day);
-    
-    final diff = d.difference(s).inDays;
-    if (diff < 0) return 1;
-    return (diff / 7).floor() + 1;
-  }
-
   /// 构建每日课程内容
   Widget _buildCourseContent({
-    required List<Course> todayCourses,
-    required List<Course> tomorrowCourses,
+    required List<CourseWithStatus> todayCourses,
+    required List<CourseWithStatus> tomorrowCourses,
+    required List<SectionTime> sectionTimes,
     required SettingsState settings,
     required DateTime today,
   }) {
@@ -147,26 +117,27 @@ class _DailyCoursePageState extends State<DailyCoursePage>
           children: [
             _buildEmptyState(),
             const SizedBox(height: 24),
-            _buildTomorrowPreview(tomorrowCourses, settings),
+            _buildTomorrowPreview(tomorrowCourses, sectionTimes),
           ],
         ),
       );
     }
 
     final allFinished = todayCourses.every(
-      (course) => _getCourseStatus(course, today, settings) == CourseStatus.finished,
+      (cws) => cws.status == CourseStatus.finished,
     );
 
-    final sortedCourses = List<Course>.from(todayCourses)
-      ..sort((a, b) => a.sections.first.compareTo(b.sections.first));
+    final sortedCourses = List<CourseWithStatus>.from(todayCourses)
+      ..sort((a, b) => a.course.sections.first.compareTo(b.course.sections.first));
 
     final children = <Widget>[
-      for (final course in sortedCourses) _buildCourseCard(course, settings, today),
+      for (final cws in sortedCourses)
+        _buildCourseCard(cws, sectionTimes),
     ];
 
     if (allFinished) {
       children.add(const SizedBox(height: 24));
-      children.add(_buildTomorrowPreview(tomorrowCourses, settings));
+      children.add(_buildTomorrowPreview(tomorrowCourses, sectionTimes));
     }
 
     return ListView(
@@ -176,10 +147,11 @@ class _DailyCoursePageState extends State<DailyCoursePage>
   }
 
   /// 构建课程列表
-  Widget _buildCourseCard(Course course, SettingsState settings, DateTime checkDate) {
-    final classTimeText = _getClassTimeText(course, settings.sectionTimes);
+  Widget _buildCourseCard(CourseWithStatus cws, List<SectionTime> sectionTimes) {
+    final course = cws.course;
+    final classTimeText = _getClassTimeText(course, sectionTimes);
     final timeText = classTimeText.isNotEmpty ? classTimeText : course.timeText;
-    final status = _getCourseStatus(course, checkDate, settings);
+    final status = cws.status;
     final isFinished = status == CourseStatus.finished;
     final isOngoing = status == CourseStatus.ongoing;
 
@@ -341,9 +313,9 @@ class _DailyCoursePageState extends State<DailyCoursePage>
         }
       });
 
-  Widget _buildTomorrowPreview(List<Course> tomorrowCourses, SettingsState settings) {
-    final sortedCourses = List<Course>.from(tomorrowCourses)
-      ..sort((a, b) => a.sections.first.compareTo(b.sections.first));
+  Widget _buildTomorrowPreview(List<CourseWithStatus> tomorrowCourses, List<SectionTime> sectionTimes) {
+    final sortedCourses = List<CourseWithStatus>.from(tomorrowCourses)
+      ..sort((a, b) => a.course.sections.first.compareTo(b.course.sections.first));
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -369,9 +341,9 @@ class _DailyCoursePageState extends State<DailyCoursePage>
               )
             else
               ...sortedCourses.map(
-                (course) => Padding(
+                (cws) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildTomorrowCourseRow(course, settings),
+                  child: _buildTomorrowCourseRow(cws.course, sectionTimes),
                 ),
               ),
           ],
@@ -380,8 +352,8 @@ class _DailyCoursePageState extends State<DailyCoursePage>
     );
   }
 
-  Widget _buildTomorrowCourseRow(Course course, SettingsState settings) {
-    final classTimeText = _getClassTimeText(course, settings.sectionTimes);
+  Widget _buildTomorrowCourseRow(Course course, List<SectionTime> sectionTimes) {
+    final classTimeText = _getClassTimeText(course, sectionTimes);
     final timeText = classTimeText.isNotEmpty ? classTimeText : course.timeText;
 
     return Row(
@@ -452,84 +424,6 @@ class _DailyCoursePageState extends State<DailyCoursePage>
     return '';
   }
 
-  /// 获取课程状态
-  CourseStatus _getCourseStatus(Course course, DateTime checkDate, SettingsState settings) {
-    if (course.sections.isEmpty || settings.sectionTimes.isEmpty) {
-      return CourseStatus.notStarted;
-    }
-
-    // 检查课程是否在指定日期进行
-    final targetWeekday = checkDate.weekday;
-    if (course.day != targetWeekday) {
-      return CourseStatus.notStarted;
-    }
-
-    // 检查课程是否在当前周数内
-    if (settings.startSemesterDate != null) {
-      final weekNumber = ((checkDate.difference(settings.startSemesterDate!).inDays) ~/ 7) + 1;
-      if (!course.weeks.contains(weekNumber)) {
-        return CourseStatus.notStarted;
-      }
-    }
-
-    final startSection = course.sections.first;
-    final endSection = course.sections.last;
-
-    final startTime = settings.sectionTimes
-        .where((st) => st.section == startSection)
-        .firstOrNull?.startTime;
-
-    final endTime = settings.sectionTimes
-        .where((st) => st.section == endSection)
-        .firstOrNull?.endTime;
-
-    if (startTime == null || endTime == null) {
-      return CourseStatus.notStarted;
-    }
-
-    final now = DateTime.now();
-    
-    // 构建课程的开始和结束时间
-    final startTimeParts = startTime.split(':');
-    final endTimeParts = endTime.split(':');
-
-    final courseStart = DateTime(
-      checkDate.year,
-      checkDate.month,
-      checkDate.day,
-      int.parse(startTimeParts[0]),
-      int.parse(startTimeParts[1]),
-    );
-
-    final courseEnd = DateTime(
-      checkDate.year,
-      checkDate.month,
-      checkDate.day,
-      int.parse(endTimeParts[0]),
-      int.parse(endTimeParts[1]),
-    );
-
-    // 只有当检查日期是今天时，才根据当前时间判断进行状态
-    if (checkDate.year == now.year &&
-        checkDate.month == now.month &&
-        checkDate.day == now.day) {
-      // 今天的课程，根据当前时间判断状态
-      if (now.isBefore(courseStart)) {
-        return CourseStatus.notStarted;
-      } else if (now.isAfter(courseEnd)) {
-        return CourseStatus.finished;
-      } else {
-        return CourseStatus.ongoing;
-      }
-    } else if (checkDate.isBefore(DateTime(now.year, now.month, now.day))) {
-      // 过去的日期，课程已结束
-      return CourseStatus.finished;
-    } else {
-      // 未来的日期，课程未开始
-      return CourseStatus.notStarted;
-    }
-  }
-
   /// 构建空状态
   Widget _buildEmptyState() {
     return Center(
@@ -588,15 +482,13 @@ class _DailyCoursePageState extends State<DailyCoursePage>
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => context.read<CourseBloc>().add(const LoadCourses()),
+            onPressed: () => context.read<DailyCourseBloc>().add(const RefreshDailyCourses()),
             child: const Text('重试'),
           ),
         ],
       ),
     );
   }
-
-  DateTime _startOfDay(DateTime date) => DateTime(date.year, date.month, date.day);
 
   /// 格式化日期显示
   String _formatDate(DateTime date) {
