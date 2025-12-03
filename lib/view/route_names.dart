@@ -7,4 +7,8 @@ class RouteNames {
 
   /// 登录后的主页
   static const MAIN = '/main';
+
+  /// 教务导入相关的路由
+  static const JW_IMPORT_CONFIG = '/jw_import_config';
+  static const JW_IMPORT_WEBVIEW = '/jw_import_webview';
 }

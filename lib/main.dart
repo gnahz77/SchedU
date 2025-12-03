@@ -40,48 +40,55 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return MultiRepositoryProvider(
       providers: [
-        BlocProvider(
-          create: (context) => SettingsBloc(SettingsManager.instance)..add(LoadSettings()),
-        ),
-        BlocProvider(
-          create: (context) => CourseBloc(CourseRepositoryImpl()),
-        ),
-        BlocProvider(
-          create: (context) => DailyCourseBloc(
-            CourseRepositoryImpl(),
-            SettingsManager.instance,
-          )..add(const LoadDailyCourses()),
-        ),
-        BlocProvider(
-          create: (context) => WeeklyCourseBloc(
-            CourseRepositoryImpl(),
-            SettingsManager.instance,
-          )..add(const RefreshWeeklyCourses()),
-        ),
+        RepositoryProvider<CourseRepository>(
+          create: (_) => CourseRepositoryImpl(),
+        )
       ],
-      child: BlocBuilder<SettingsBloc, SettingsState>(
-        buildWhen: (previous, current) => previous.themeMode != current.themeMode,
-        builder: (context, state) {
-          return MaterialApp(
-            title: 'SchedU',
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: state.themeMode,
-            locale: const Locale('zh', 'CN'),
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('zh', 'CN'),
-            ],
-            initialRoute: RouteNames.MAIN,
-            routes: Routes.routes,
-          );
-        },
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) => SettingsBloc(SettingsManager.instance)..add(LoadSettings()),
+          ),
+          BlocProvider(
+            create: (context) => CourseBloc(context.read<CourseRepository>()),
+          ),
+          BlocProvider(
+            create: (context) => DailyCourseBloc(
+              context.read<CourseRepository>(),
+              SettingsManager.instance,
+            )..add(const LoadDailyCourses()),
+          ),
+          BlocProvider(
+            create: (context) => WeeklyCourseBloc(
+              context.read<CourseRepository>(),
+              SettingsManager.instance,
+            )..add(const RefreshWeeklyCourses()),
+          ),
+        ],
+        child: BlocBuilder<SettingsBloc, SettingsState>(
+          buildWhen: (previous, current) => previous.themeMode != current.themeMode,
+          builder: (context, state) {
+            return MaterialApp(
+              title: 'SchedU',
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: state.themeMode,
+              locale: const Locale('zh', 'CN'),
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('zh', 'CN'),
+              ],
+              initialRoute: RouteNames.MAIN,
+              routes: Routes.routes,
+            );
+          },
+        ),
       ),
     );
   }

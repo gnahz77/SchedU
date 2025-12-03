@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:schedu/bloc/course/course_event.dart';
 import 'package:schedu/repository/course_repository.dart';
-import 'package:schedu/repository/course_import_service.dart';
+import 'package:schedu/service/course_import_service.dart';
 import 'package:schedu/repository/settings_manager.dart';
 import 'course_state.dart';
 

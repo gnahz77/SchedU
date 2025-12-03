@@ -7,10 +7,10 @@ allprojects {
 
 rootProject.buildDir = "../build"
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
+    if (project.projectDir.absolutePath.startsWith(rootDir.absolutePath)) {
+        project.buildDir = "${rootProject.buildDir}/${project.name}"
+        project.evaluationDependsOn(":app")
+    }
 }
 
 tasks.register("clean", Delete) {

@@ -1,0 +1,68 @@
+[
+  {
+    "name": "阿里通义千问",
+    "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "defaultModel": "qwen-plus",
+    "icon": "Qwen.png"
+  },
+  {
+    "name": "Anthropic (Claude)",
+    "baseUrl": "https://api.anthropic.com/v1",
+    "defaultModel": "claude-3",
+    "icon": "Claude.png"
+  },
+  {
+    "name": "百度文心一言",
+    "baseUrl": "https://aip.baidubce.com/rpc/2.0/ai_custom/v1",
+    "defaultModel": "ernie-speed",
+    "icon": "Baidu.ico"
+  },
+  {
+    "name": "DeepSeek",
+    "baseUrl": "https://api.deepseek.com/v1",
+    "defaultModel": "deepseek-chat",
+    "icon": "DeepSeek.png"
+  },
+  {
+    "name": "Google (Gemini)",
+    "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "defaultModel": "gemini-2.0-flash",
+    "icon": "Gemini.png"
+  },
+  {
+    "name": "火山引擎 (豆包)",
+    "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+    "defaultModel": "doubao-seed-1.6",
+    "icon": "DouBao.png"
+  },
+  {
+    "name": "Moonshot AI (Kimi)",
+    "baseUrl": "https://api.moonshot.cn/v1",
+    "defaultModel": "kimi-k2-250905",
+    "icon": "Kimi.png"
+  },
+  {
+    "name": "OpenAI (ChatGPT)",
+    "baseUrl": "https://api.openai.com/v1",
+    "defaultModel": "gpt-4.1-mini",
+    "icon": "ChatGPT.ico"
+  },
+  {
+    "name": "腾讯混元",
+    "baseUrl": "https://api.hunyuan.cloud.tencent.com/v1",
+    "defaultModel": "hunyuan-lite",
+    "icon": "Tencent.png"
+  },
+  {
+    "name": "xAI",
+    "baseUrl": "https://api.x.ai/v1",
+    "defaultModel": "grok-3-mini-beta",
+    "icon": "xAI.ico"
+  },
+  {
+    "name": "智普清言",
+    "baseUrl": "https://open.bigmodel.cn/api/paas/v4/",
+    "defaultModel": "glm-4.5-flash",
+    "icon": "GLM.png"
+  }
+]

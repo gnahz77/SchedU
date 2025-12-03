@@ -100,7 +100,7 @@ class AppTheme {
     ),
 
     // Card theme
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.surface,
       elevation: 2,
       shape: AppShapes.defaultCardShape,
@@ -219,7 +219,7 @@ class AppTheme {
     ),
 
     // Tab bar theme
-    tabBarTheme: const TabBarTheme(
+    tabBarTheme: const TabBarThemeData(
       labelColor: AppColors.primaryColor,
       unselectedLabelColor: AppColors.onSurfaceVariant,
       indicator: UnderlineTabIndicator(
@@ -325,7 +325,7 @@ class AppTheme {
     ),
 
     // Card theme
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.darkSurface,
       elevation: 3,
       shape: AppShapes.defaultCardShape,
@@ -445,7 +445,7 @@ class AppTheme {
     ),
 
     // Tab bar theme
-    tabBarTheme: const TabBarTheme(
+    tabBarTheme: const TabBarThemeData(
       labelColor: AppColors.primaryLight,
       unselectedLabelColor: AppColors.darkOnSurfaceVariant,
       indicator: UnderlineTabIndicator(

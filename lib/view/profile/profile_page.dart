@@ -9,8 +9,9 @@ import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_bloc.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
 import 'package:schedu/model/section_time.dart';
-import 'package:schedu/repository/course_import_service.dart';
+import 'package:schedu/service/course_import_service.dart';
 
+import '../route_names.dart';
 import 'profile_page_import_export.dart';
 import 'section_times_dialog.dart';
 
@@ -104,7 +105,7 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
                 },
               ),
               // 开学时间设置
-              _buildStartSemesterSettingItem(context, settingsState.startSemesterDate),
+              _StartSemesterSettingItem(startDate: settingsState.startSemesterDate),
               // 学期总周数设置
               _buildSettingItem(
                 context,
@@ -173,7 +174,9 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
                 icon: Icons.language_outlined,
                 title: '教务导入',
                 subtitle: '从教务系统导入课程',
-                onTap: () => _showJwImportDialog(context),
+                onTap: () => {
+                  Navigator.pushNamed(context, RouteNames.JW_IMPORT_CONFIG)
+                },
               ),
               // 导出课程
               _buildSettingItem(
@@ -259,11 +262,6 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
         onTap: onTap,
       ),
     );
-  }
-
-  /// 开学日期设置项
-  Widget _buildStartSemesterSettingItem(BuildContext context, DateTime? startDate) {
-    return _StartSemesterSettingItem(startDate: startDate);
   }
 
   /// 显示学期总周数设置对话框
@@ -655,33 +653,6 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
         ],
       ),
     );
-  }
-
-  /// 显示教务网站导入对话框
-  void _showJwImportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('教务网站导入'),
-        content:
-            const Text('该功能将支持从学校教务系统导入课程数据。\n\n请确保已登录教务系统并获取到正确的课程数据。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: 实现文件选择和导入功能
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('导入功能开发中...')),
-              );
-            },
-            child: const Text('开始导入')
-          )
-        ],
-      ));
   }
 
   /// 显示导出课程对话框

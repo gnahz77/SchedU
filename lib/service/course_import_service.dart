@@ -17,116 +17,119 @@ class ImportData {
 
 /// 课程导入服务类
 class CourseImportService {
-  /// 选择并读取JSON文件
-  /// 返回一个Map，包含courses列表和可选的scheduleConfig
-  static Future<ImportData?> pickAndReadJsonFile() async {
-    try {
-      // 选择文件
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        allowMultiple: false,
-      );
+  /// 选择JSON文件并读取其内容为字符串
+  static Future<String?> _pickJsonFileContents() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      allowMultiple: false,
+    );
 
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final contents = await file.readAsString();
+    // 若选择成功则读取文件内容
+    if (result != null && result.files.single.path != null) {
+      final file = File(result.files.single.path!);
+      return await file.readAsString();
+    }
+    return null;
+  }
 
-        // 解析JSON
-        final jsonData = jsonDecode(contents);
+  /// 解析课程导入JSON字符串为ImportData对象
+  static ImportData _parseImportDataFromJsonString(String contents) {
+    final jsonData = jsonDecode(contents);
+    return _parseImportDataFromJson(jsonData);
+  }
 
-        // 验证JSON格式 - 支持新格式 {courses: [...], timer: {...}}
-        if (jsonData is Map<String, dynamic>) {
-          // 新格式：包含courses数组和可选的timer对象
-          if (!jsonData.containsKey('courses') || jsonData['courses'] is! List) {
-            throw Exception('JSON数据格式不正确：缺少courses数组字段');
+  /// 解析课程导入JSON对象为ImportData对象
+  static ImportData _parseImportDataFromJson(dynamic jsonData) {
+    if (jsonData is Map<String, dynamic>) {
+      if (!jsonData.containsKey('courses') || jsonData['courses'] is! List) {
+        throw Exception('JSON数据格式不正确：缺少courses数组字段');
+      }
+
+      final List<Map<String, dynamic>> courseList = [];
+      final coursesData = jsonData['courses'] as List;
+
+      // 遍历每个课程对象并校验字段
+      for (var item in coursesData) {
+        if (item is Map<String, dynamic>) {
+          if (_validateCourseData(item)) {
+            courseList.add(item);
+          } else {
+            throw Exception('JSON数据格式不正确：课程数据缺少必要字段');
           }
-
-          final List<Map<String, dynamic>> courseList = [];
-          final coursesData = jsonData['courses'] as List;
-
-          for (var item in coursesData) {
-            if (item is Map<String, dynamic>) {
-              // 验证必要字段
-              if (_validateCourseData(item)) {
-                courseList.add(item);
-              } else {
-                throw Exception('JSON数据格式不正确：课程数据缺少必要字段');
-              }
-            } else {
-              throw Exception('JSON数据格式不正确：courses应为对象数组');
-            }
-          }
-
-          // 解析可选的timer配置
-          ScheduleConfig? scheduleConfig;
-          if (jsonData.containsKey('timer') && jsonData['timer'] != null) {
-            if (jsonData['timer'] is Map<String, dynamic>) {
-              scheduleConfig = ScheduleConfig.fromJson(jsonData['timer']);
-            } else {
-              throw Exception('JSON数据格式不正确：timer应为对象格式');
-            }
-          }
-
-          return ImportData(
-            courses: courseList,
-            scheduleConfig: scheduleConfig,
-          );
-        } else if (jsonData is List) {
-          // 兼容旧格式：直接是课程数组
-          final List<Map<String, dynamic>> courseList = [];
-
-          for (var item in jsonData) {
-            if (item is Map<String, dynamic>) {
-              // 验证必要字段
-              if (_validateCourseData(item)) {
-                courseList.add(item);
-              } else {
-                throw Exception('JSON数据格式不正确：缺少必要字段');
-              }
-            } else {
-              throw Exception('JSON数据格式不正确：应为对象数组');
-            }
-          }
-
-          return ImportData(courses: courseList);
         } else {
-          throw Exception('JSON数据格式不正确：根元素应为对象或数组');
+          throw Exception('JSON数据格式不正确：courses应为对象数组');
         }
       }
-      
-      return null; // 用户取消选择文件
+
+      // 可选时间表配置解析
+      ScheduleConfig? scheduleConfig;
+      if (jsonData.containsKey('timer') && jsonData['timer'] != null) {
+        if (jsonData['timer'] is Map<String, dynamic>) {
+          scheduleConfig = ScheduleConfig.fromJson(jsonData['timer']);
+        } else {
+          throw Exception('JSON数据格式不正确：timer应为对象格式');
+        }
+      }
+
+      return ImportData(
+        courses: courseList,
+        scheduleConfig: scheduleConfig,
+      );
+    } else if (jsonData is List) {
+      // 根节点为数组时直接作为课程列表
+      final List<Map<String, dynamic>> courseList = [];
+
+      for (var item in jsonData) {
+        if (item is Map<String, dynamic>) {
+          if (_validateCourseData(item)) {
+            courseList.add(item);
+          } else {
+            throw Exception('JSON数据格式不正确：缺少必要字段');
+          }
+        } else {
+          throw Exception('JSON数据格式不正确：应为对象数组');
+        }
+      }
+
+      return ImportData(courses: courseList);
+    } else {
+      throw Exception('JSON数据格式不正确：根元素应为对象或数组');
+    }
+  }
+
+  /// 解析时间表配置JSON字符串为ScheduleConfig对象
+  static ScheduleConfig _parseScheduleConfigFromJsonString(String contents) {
+    final jsonData = jsonDecode(contents);
+    return _parseScheduleConfigFromJson(jsonData);
+  }
+
+  /// 解析时间表配置JSON对象为ScheduleConfig对象
+  static ScheduleConfig _parseScheduleConfigFromJson(dynamic jsonData) {
+    if (jsonData is Map<String, dynamic>) {
+      return ScheduleConfig.fromJson(jsonData);
+    } else {
+      throw Exception('JSON数据格式不正确：应为对象格式');
+    }
+  }
+
+  /// 选择并读取课程表配置JSON文件进行解析
+  static Future<ImportData?> pickAndReadJsonFile() async {
+    try {
+      final contents = await _pickJsonFileContents();
+      if (contents == null) return null;
+      return _parseImportDataFromJsonString(contents);
     } catch (e) {
       throw Exception('文件读取失败: ${e.toString()}');
     }
   }
 
-  /// 选择并读取时间表配置JSON文件
+  /// 选择并读取时间表配置JSON文件进行解析
   static Future<ScheduleConfig?> pickAndReadScheduleConfigFile() async {
     try {
-      // 选择文件
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final contents = await file.readAsString();
-
-        // 解析JSON
-        final jsonData = jsonDecode(contents);
-
-        // 验证并创建ScheduleConfig对象
-        if (jsonData is Map<String, dynamic>) {
-          return ScheduleConfig.fromJson(jsonData);
-        } else {
-          throw Exception('JSON数据格式不正确：应为对象格式');
-        }
-      }
-
-      return null; // 用户取消选择文件
+      final contents = await _pickJsonFileContents();
+      if (contents == null) return null;
+      return _parseScheduleConfigFromJsonString(contents);
     } catch (e) {
       throw Exception('文件读取失败: ${e.toString()}');
     }
@@ -136,7 +139,6 @@ class CourseImportService {
   static bool _validateCourseData(Map<String, dynamic> data) {
     // 检查必要字段
     final requiredFields = ['name', 'position', 'teacher', 'weeks', 'day', 'sections'];
-    
     for (String field in requiredFields) {
       if (!data.containsKey(field)) {
         return false;
@@ -158,7 +160,7 @@ class CourseImportService {
         return false;
       }
 
-      // 验证 weeks 是整数数组
+      // 验证 weeks 是整数数组且每项大于0
       final weeks = data['weeks'];
       if (weeks is! List || weeks.isEmpty) {
         return false;
@@ -169,7 +171,7 @@ class CourseImportService {
         }
       }
 
-      // 验证 sections 是整数数组
+      // 验证 sections 是整数数组且每项大于0
       final sections = data['sections'];
       if (sections is! List || sections.isEmpty) {
         return false;
@@ -229,7 +231,6 @@ class CourseImportService {
         ]
       }
     };
-    
     return jsonEncode(example);
   }
 
@@ -266,7 +267,6 @@ class CourseImportService {
         }
       ]
     };
-
     return jsonEncode(example);
   }
 
