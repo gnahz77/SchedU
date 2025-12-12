@@ -107,7 +107,6 @@ private class FlutterWebViewPlatformView(
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 request?.url?.toString()?.let {
-                    Log.d("Test", "shouldOverrideUrlLoading: $it")
                     if (it.startsWith("http://") || it.startsWith("https://")) {
                         view?.loadUrl(it, extraHeaders)
                     }

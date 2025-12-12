@@ -1,0 +1,59 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- 背景 -->
+    <path
+        android:fillColor="#F8F8F8"
+        android:pathData="M16,0 L184,0 C192.84,0 200,7.16 200,16 L200,184 C200,192.84 192.84,200 184,200 L16,200 C7.16,200 0,192.84 0,184 L0,16 C0,7.16 7.16,0 16,0 Z"/>
+    
+    <!-- 标题区域 -->
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M16,20 L80,20 L80,35 L16,35 Z"/>
+    
+    <path
+        android:fillColor="#008C8C"
+        android:pathData="M90,22 L150,22 L150,33 L90,33 Z"/>
+    
+    <!-- 课程卡片1 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,45 L184,45 C188.42,45 192,48.58 192,53 L192,95 C192,99.42 188.42,103 184,103 L16,103 C11.58,103 8,99.42 8,95 L8,53 C8,48.58 11.58,45 16,45 Z"/>
+    
+    <path
+        android:fillColor="#E0F2F2"
+        android:pathData="M20,55 L70,55 L70,67 L20,67 Z"/>
+    
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M80,57 L160,57 L160,65 L80,65 Z"/>
+    
+    <path
+        android:fillColor="#757575"
+        android:pathData="M20,80 L140,80 L140,88 L20,88 Z"/>
+    
+    <!-- 课程卡片2 - 上课中 -->
+    <path
+        android:fillColor="#FFF8E1"
+        android:pathData="M16,113 L184,113 C188.42,113 192,116.58 192,121 L192,163 C192,167.42 188.42,171 184,171 L16,171 C11.58,171 8,167.42 8,163 L8,121 C8,116.58 11.58,113 16,113 Z"/>
+    
+    <path
+        android:fillColor="#008C8C"
+        android:pathData="M20,123 L70,123 L70,135 L20,135 Z"/>
+    
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M80,125 L140,125 L140,133 L80,133 Z"/>
+    
+    <path
+        android:fillColor="#B00020"
+        android:pathData="M155,123 L185,123 L185,135 L155,135 Z"/>
+    
+    <path
+        android:fillColor="#757575"
+        android:pathData="M20,148 L140,148 L140,156 L20,156 Z"/>
+    
+</vector>

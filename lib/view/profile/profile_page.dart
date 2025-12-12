@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,6 +18,7 @@ import 'section_times_dialog.dart';
 
 /// 个人设置页面
 class ProfilePage extends StatelessWidget with ImportExportMixin {
+  static const MethodChannel _widgetChannel = MethodChannel('com.gnahz.schedu/main');
   const ProfilePage({super.key});
 
   @override
@@ -207,6 +209,14 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
                 subtitle: _getThemeModeText(settingsState.themeMode),
                 onTap: () => _showThemeSettingDialog(context, settingsState.themeMode),
               ),
+              // 添加小组件
+              _buildSettingItem(
+                context,
+                icon: Icons.widgets_outlined,
+                title: '添加小组件',
+                subtitle: '将“今日课程”桌面小组件固定到桌面',
+                onTap: () => _handleAddWidgetTap(context),
+              ),
               // 关于应用
               _buildSettingItem(
                 context,
@@ -215,7 +225,6 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
                 subtitle: '版本 1.0.0',
                 onTap: () => _showAboutDialog(context),
               ),
-              
               const SizedBox(height: 32),
             ],
           ),
@@ -581,6 +590,36 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
         return '浅色模式';
       case ThemeMode.dark:
         return '深色模式';
+    }
+  }
+
+  Future<void> _handleAddWidgetTap(BuildContext context) async {
+    if (!Platform.isAndroid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('桌面小组件目前仅支持在Android上添加')),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('请在弹出的系统对话框中确认添加小组件')),
+    );
+
+    try {
+      final success = await _widgetChannel.invokeMethod<bool>('addDailyWidget');
+      if (success == true && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已请求添加“今日课程”小组件')),
+        );
+      }
+    } on PlatformException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('添加小组件失败：${e.message ?? '未知错误'}')),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('添加小组件失败，请稍后再试')),
+      );
     }
   }
 
