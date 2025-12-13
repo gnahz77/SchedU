@@ -41,6 +41,66 @@ function compress(element) {
         .trim();
 }
 
+// 将HTML元素转换为纯文本
+function htmlToText(element) {
+    if (!element) return '';
+
+    // 定义块级标签，这些标签在渲染时通常会独占一行
+    const blockTags = new Set([
+        'p', 'div', 'section', 'article', 'header', 'footer', 'aside',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'ul', 'ol',
+        'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+        'blockquote', 'pre', 'form', 'fieldset'
+    ]);
+
+    // 递归遍历DOM节点
+    function walk(node) {
+        // 文本节点：返回其值，并将连续的空白字符（包括换行）替换为单个空格
+        if (node.nodeType === 3) { // Node.TEXT_NODE
+            return node.nodeValue.replace(/\s+/g, ' ');
+        }
+
+        // 元素节点
+        if (node.nodeType === 1) { // Node.ELEMENT_NODE
+            const tagName = node.tagName.toLowerCase();
+
+            if (['head', 'script', 'style', 'noscript'].includes(tagName)) {
+                return '';
+            }
+
+            // <br> 标签直接转换成换行符
+            if (tagName === 'br') {
+                return '\n';
+            }
+
+            let text = '';
+            // 遍历所有子节点，并拼接它们的文本内容
+            for (const child of node.childNodes) {
+                text += walk(child);
+            }
+
+            // 如果是块级标签，在其内容前后加上换行符
+            if (blockTags.has(tagName)) {
+                text = text + '\n';
+            }
+            return text;
+        }
+
+        // 其他类型的节点（如注释）返回空字符串
+        return '';
+    }
+
+    // 从根元素开始遍历，并对结果进行清理
+    let text = walk(element);
+
+    // 1. 将多个连续的换行符压缩为最多两个（保留段落间的空行）
+    text = text.replace(/\n\s*\n/g, '\n');
+    // 2. 移除字符串开头和结尾的换行符和空格
+    text = text.trim();
+
+    return text;
+}
+
 /**
  * 课表HTML提取实现 - 使用启发式搜索从教务系统页面中提取课表部分
  */
@@ -330,8 +390,10 @@ function getSchedule(doc = document) {
     try {
         const best = findBestScheduleContainer();
         if (best) {
+            const parse = new DOMParser();
             result.success = true;
             result.html = compress(best.element.cloneNode(true));
+            result.text = htmlToText(parse.parseFromString(result.html, 'text/html').documentElement);
             result.debug = {
                 source: best.source,
                 score: best.score,

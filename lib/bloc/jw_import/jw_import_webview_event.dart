@@ -72,12 +72,12 @@ class ToggleDesktopMode extends JwImportWebviewEvent {
 
 /// 解析并导入课程
 class ParseAndImportCourses extends JwImportWebviewEvent {
-  final String htmlContent;
+  final dynamic data;
 
-  const ParseAndImportCourses(this.htmlContent);
+  const ParseAndImportCourses(this.data);
 
   @override
-  List<Object?> get props => [htmlContent];
+  List<Object?> get props => [data];
 }
 
 /// 确认导入课程

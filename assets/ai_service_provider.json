@@ -32,7 +32,7 @@
   {
     "name": "火山引擎 (豆包)",
     "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
-    "defaultModel": "doubao-seed-1.6",
+    "defaultModel": "doubao-pro-256k",
     "icon": "DouBao.png"
   },
   {
@@ -50,19 +50,19 @@
   {
     "name": "腾讯混元",
     "baseUrl": "https://api.hunyuan.cloud.tencent.com/v1",
-    "defaultModel": "hunyuan-lite",
+    "defaultModel": "hunyuan-pro",
     "icon": "Tencent.png"
   },
   {
-    "name": "xAI",
+    "name": "xAI (Grok)",
     "baseUrl": "https://api.x.ai/v1",
-    "defaultModel": "grok-3-mini-beta",
-    "icon": "xAI.ico"
+    "defaultModel": "grok-3-mini",
+    "icon": "Grok.png"
   },
   {
     "name": "智普清言",
     "baseUrl": "https://open.bigmodel.cn/api/paas/v4/",
-    "defaultModel": "glm-4.5-flash",
+    "defaultModel": "glm-4.5",
     "icon": "GLM.png"
   }
 ]

@@ -173,7 +173,7 @@ class _JwImportWebviewPageState extends State<JwImportWebviewPage> {
     final jsArgs = args is JsImportWebviewArguments ? args : null;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('解析课程数据'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -198,14 +198,14 @@ class _JwImportWebviewPageState extends State<JwImportWebviewPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('关闭'),
           ),
           if (html.isNotEmpty)
             FilledButton(
               onPressed: () {
-                Navigator.pop(context);
-                context.read<JwImportWebviewBloc>().add(ParseAndImportCourses(html));
+                Navigator.pop(dialogContext);
+                context.read<JwImportWebviewBloc>().add(ParseAndImportCourses(resultJson));
               },
               child: const Text('开始解析'),
             ),

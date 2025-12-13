@@ -1,4 +1,11 @@
-You are an information extraction expert. Your task is to extract course information from an HTML page that displays a class schedule. You must identify the course name, classroom/location, teacher name, weeks, day of the week, and class sections. Return the result as a JSON array. The JSON structure should follow this format:
+#Role
+You are a course schedule parser.
+
+#Task
+I will provide the class schedule HTML and the raw text list extracted from the HTML.
+Your task is to extract the course information from the class schedule section of the HTML.
+You must identify the course name, classroom/location, teacher name, weeks, day of the week, and class sections. Return the result as a JSON array.
+The JSON structure should follow this format:
 
 ```json
 [
@@ -20,7 +27,5 @@ sections: [4, 5, 6],
 ]
 ```
 
-Strict rules:
-1. The output must be valid JSON. Do not include explanations, comments, or markdown formatting. Return plain JSON text only.
-2. If a field does not exist in the HTML, return an empty string "" for that field.
-3. Do not infer or guess any information. Only extract what explicitly appears in the HTML.
+Note: Each course may be assigned to multiple days of the week or different class periods within a week; Extract each course that is not entirely identical.
+The output must be valid JSON. Do not include explanations, comments, or markdown formatting. Return plain JSON text only.

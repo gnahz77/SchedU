@@ -294,7 +294,7 @@ class JwImportConfigBloc
                 aiModel: currentState.aiModel,
                 maxTextLength: currentState.maxTextLength,
                 baseUrl: resolvedBaseUrl,
-                strongPrompt: "导入前请确认已登录并打开课表页面：将查看周次切换为“全部”或切换到“学期课表”，以确保能导入整学期的课程。"
+                strongPrompt: "导入前请确认已登录并打开 周/学期 课表页面，以确保能识别到网页中的课程信息。"
                     "\n\n导入前建议关闭不必要的弹窗和广告，以免影响对页面的解析。",
               )
             : JsImportWebviewArguments(

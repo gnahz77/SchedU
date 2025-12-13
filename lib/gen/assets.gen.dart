@@ -46,6 +46,9 @@ class $AssetsImagesAiGen {
   AssetGenImage get gemini =>
       const AssetGenImage('assets/images/ai/Gemini.png');
 
+  /// File path: assets/images/ai/Grok.png
+  AssetGenImage get grok => const AssetGenImage('assets/images/ai/Grok.png');
+
   /// File path: assets/images/ai/Kimi.png
   AssetGenImage get kimi => const AssetGenImage('assets/images/ai/Kimi.png');
 
@@ -56,9 +59,6 @@ class $AssetsImagesAiGen {
   AssetGenImage get tencent =>
       const AssetGenImage('assets/images/ai/Tencent.png');
 
-  /// File path: assets/images/ai/xAI.ico
-  String get xAI => 'assets/images/ai/xAI.ico';
-
   /// List of all assets
   List<dynamic> get values => [
     baidu,
@@ -68,10 +68,10 @@ class $AssetsImagesAiGen {
     douBao,
     glm,
     gemini,
+    grok,
     kimi,
     qwen,
     tencent,
-    xAI,
   ];
 }
 

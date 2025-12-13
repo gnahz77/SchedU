@@ -143,12 +143,14 @@ class JwImportWebviewBloc extends Bloc<JwImportWebviewEvent, JwImportWebviewStat
 
       emit(state.copyWith(parsingStatus: '正在调用AI解析课程表...'));
 
-      // 准备HTML内容
-      String htmlContent = event.htmlContent;
-      
+      String htmlContent = event.data['html'] as String;
+      String rawText = event.data['text'] as String;
+      var prompt = '```html\n$htmlContent\n```\n'
+          '\n```raw-text\n$rawText\n```';
+
       // 如果设置了最大文本长度，进行截断
-      if (aiArgs.maxTextLength > 0 && htmlContent.length > aiArgs.maxTextLength) {
-        htmlContent = htmlContent.substring(0, aiArgs.maxTextLength);
+      if (aiArgs.maxTextLength > 0 && prompt.length > aiArgs.maxTextLength) {
+        prompt = prompt.substring(0, aiArgs.maxTextLength);
       }
 
       // 创建AI服务
@@ -161,7 +163,7 @@ class JwImportWebviewBloc extends Bloc<JwImportWebviewEvent, JwImportWebviewStat
       final request = AIChatRequest(
         model: aiArgs.aiModel,
         systemPrompt: systemPrompt,
-        prompt: htmlContent,
+        prompt: prompt,
       );
 
       // 使用流式API接收数据
