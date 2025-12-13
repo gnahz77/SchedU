@@ -232,62 +232,62 @@ class _JwImportWebviewPageState extends State<JwImportWebviewPage> {
 
   /// 显示更多选项
   void _showMoreOptions() {
+    final bloc = context.read<JwImportWebviewBloc>();
     showModalBottomSheet(
       context: context,
       builder: (context) => BlocBuilder<JwImportWebviewBloc, JwImportWebviewState>(
-        builder: (context, state) => StatefulBuilder(
-          builder: (context, modalSetState) => SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.refresh),
-                  title: const Text('刷新页面'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _refreshPage();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.arrow_back),
-                  title: const Text('后退'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    if (await _webViewController.canGoBack()) {
-                      _webViewController.goBack();
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.arrow_forward),
-                  title: const Text('前进'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    if (await _webViewController.canGoForward()) {
-                      _webViewController.goForward();
-                    }
-                  },
-                ),
-                SwitchListTile(
-                  value: state.isDesktopMode,
-                  onChanged: (value) {
-                    context.read<JwImportWebviewBloc>().add(ToggleDesktopMode(value));
-                    _webViewController.setDesktopMode(value);
-                  },
-                  title: const Text('桌面版网站'),
-                  secondary: const Icon(Icons.desktop_windows),
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.settings),
-                  title: const Text('返回配置'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
+        bloc: bloc,
+        builder: (context, state) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.refresh),
+                title: const Text('刷新页面'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _refreshPage();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.arrow_back),
+                title: const Text('后退'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (await _webViewController.canGoBack()) {
+                    _webViewController.goBack();
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.arrow_forward),
+                title: const Text('前进'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (await _webViewController.canGoForward()) {
+                    _webViewController.goForward();
+                  }
+                },
+              ),
+              SwitchListTile(
+                value: state.isDesktopMode,
+                onChanged: (value) {
+                  bloc.add(ToggleDesktopMode(value));
+                  _webViewController.setDesktopMode(value);
+                },
+                title: const Text('桌面版网站'),
+                secondary: const Icon(Icons.desktop_windows),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.settings),
+                title: const Text('返回配置'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
           ),
         ),
       ),
