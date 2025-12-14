@@ -16,6 +16,12 @@ class $AssetsImagesGen {
 
   /// Directory path: assets/images/ai
   $AssetsImagesAiGen get ai => const $AssetsImagesAiGen();
+
+  /// File path: assets/images/schedu_icon.svg
+  String get scheduIcon => 'assets/images/schedu_icon.svg';
+
+  /// List of all assets
+  List<String> get values => [scheduIcon];
 }
 
 class $AssetsImagesAiGen {

@@ -7,7 +7,7 @@
     <application
         android:label="SchedU"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@drawable/schedu_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"

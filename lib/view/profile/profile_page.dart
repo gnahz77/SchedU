@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
 import 'package:schedu/bloc/daily_course/daily_course_event.dart';
 import 'package:schedu/bloc/settings/settings_bloc.dart';
@@ -9,6 +10,7 @@ import 'package:schedu/bloc/settings/settings_event.dart';
 import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_bloc.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
+import 'package:schedu/gen/assets.gen.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/service/course_import_service.dart';
 
@@ -744,10 +746,10 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
       context: context,
       applicationName: 'SchedU',
       applicationVersion: '1.0.0',
-      applicationIcon: Icon(
-        Icons.school,
-        size: 48,
-        color: Theme.of(context).colorScheme.primary,
+      applicationIcon: SvgPicture.asset(
+        Assets.images.scheduIcon,
+        width: 48,
+        height: 48,
       ),
       children: [
         const Text('SchedU是一个简洁优雅的课程表应用，采用Material 3设计风格。'),

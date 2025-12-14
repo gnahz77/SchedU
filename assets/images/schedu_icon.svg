@@ -1,0 +1,42 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 背景渐变 -->
+    <linearGradient id="bgTeal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D9488"/>
+      <stop offset="100%" style="stop-color:#14B8A6"/>
+    </linearGradient>
+    
+    <!-- 左边方块渐变 - 深 -->
+    <linearGradient id="blockLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#e0f2f1"/>
+    </linearGradient>
+    
+    <!-- 底部方块渐变 - 中 -->
+    <linearGradient id="blockBottom" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e0f2f1"/>
+      <stop offset="100%" style="stop-color:#b2dfdb"/>
+    </linearGradient>
+    
+    <!-- 右边方块渐变 - 浅 -->
+    <linearGradient id="blockRight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#b2dfdb"/>
+      <stop offset="100%" style="stop-color:#80cbc4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景圆角矩形 -->
+  <rect x="0" y="0" width="512" height="512" rx="115" fill="url(#bgTeal)"/>
+  
+  <!-- 积木 U 字 -->
+  <g transform="translate(116, 96)">
+    <!-- 左边竖条 -->
+    <rect x="0" y="0" width="80" height="200" rx="18" fill="url(#blockLeft)"/>
+    
+    <!-- 右边竖条 -->
+    <rect x="200" y="0" width="80" height="200" rx="18" fill="url(#blockRight)"/>
+    
+    <!-- 底部横条 -->
+    <rect x="0" y="220" width="280" height="80" rx="18" fill="url(#blockBottom)"/>
+  </g>
+</svg>
