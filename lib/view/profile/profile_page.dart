@@ -1,8 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:schedu/bloc/course/course_bloc.dart';
+import 'package:schedu/bloc/course/course_state.dart';
 import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
 import 'package:schedu/bloc/daily_course/daily_course_event.dart';
 import 'package:schedu/bloc/settings/settings_bloc.dart';
@@ -25,213 +30,256 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SettingsBloc, SettingsState>(
-      builder: (context, settingsState) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('我的'),
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
-            elevation: 0,
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // 用户信息卡片
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+    return BlocListener<CourseBloc, CourseState>(
+      listener: (context, state) async {
+        if (state is CourseOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+          );
+          // 刷新课程视图
+          context.read<DailyCourseBloc>().add(const RefreshDailyCourses());
+          context.read<WeeklyCourseBloc>().add(const RefreshWeeklyCourses());
+        } else if (state is CourseError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        } else if (state is CourseExportSuccess) {
+          // 处理导出文件保存
+          try {
+            final bytes = utf8.encode(state.jsonData);
+            final result = await FilePicker.platform.saveFile(
+              dialogTitle: '保存课程数据',
+              fileName: 'schedu_export_${DateTime.now().millisecondsSinceEpoch}.json',
+              type: FileType.custom,
+              allowedExtensions: ['json'],
+              bytes: bytes,
+            );
+
+            if (result != null && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('导出成功：${state.courseCount}门课程'),
+                  backgroundColor: Colors.green,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        child: Icon(
-                          Icons.person,
-                          size: 36,
-                          color: Theme.of(context).colorScheme.onPrimary,
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('保存文件失败: $e'), backgroundColor: Colors.red),
+              );
+            }
+          }
+        }
+      },
+      child: BlocBuilder<SettingsBloc, SettingsState>(
+        builder: (context, settingsState) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('我的'),
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              elevation: 0,
+            ),
+            body: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // 用户信息卡片
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          child: Icon(
+                            Icons.person,
+                            size: 36,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '学生用户',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '学生用户',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '点击编辑个人信息',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 4),
+                              Text(
+                                '点击编辑个人信息',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ],
+                        Icon(
+                          Icons.chevron_right,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // 课程设置分组
-              Text(
-                '课程设置',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+
+                const SizedBox(height: 24),
+
+                // 课程设置分组
+                Text(
+                  '课程设置',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              
-              // 课程管理
-              _buildSettingItem(
-                context,
-                icon: Icons.school_outlined,
-                title: '课程管理',
-                subtitle: '添加、编辑、删除课程',
-                onTap: () {
-                  // TODO: 导航到课程管理页面
-                },
-              ),
-              // 开学时间设置
-              _StartSemesterSettingItem(startDate: settingsState.startSemesterDate),
-              // 学期总周数设置
-              _buildSettingItem(
-                context,
-                icon: Icons.calendar_view_week_outlined,
-                title: '学期总周数',
-                subtitle: '当前设置: ${settingsState.totalWeeks}周',
-                onTap: () => _showTotalWeeksSettingDialog(context, settingsState.totalWeeks),
-              ),
-              // 周末显示设置
-              _buildSettingItem(
-                context,
-                icon: Icons.weekend_outlined,
-                title: '显示周末',
-                subtitle: settingsState.showWeekend ? '已开启' : '已关闭',
-                onTap: () => _showWeekendSettingDialog(context, settingsState.showWeekend),
-              ),
-              // 每日节数设置
-              _buildSettingItem(
-                context,
-                icon: Icons.format_list_numbered_outlined,
-                title: '每日节数',
-                subtitle: '当前设置: ${settingsState.maxSections}节',
-                onTap: () => _showTimePeriodSettingDialog(
+                const SizedBox(height: 12),
+
+                // 课程管理
+                _buildSettingItem(
                   context,
-                  settingsState.morningSections,
-                  settingsState.afternoonSections,
-                  settingsState.eveningSections,
+                  icon: Icons.school_outlined,
+                  title: '课程管理',
+                  subtitle: '添加、编辑、删除课程',
+                  onTap: () {
+                    // TODO: 导航到课程管理页面
+                  },
                 ),
-              ),
-              // 上课时间设置
-              _buildSettingItem(
-                context,
-                icon: Icons.access_time_outlined,
-                title: '上课时间',
-                subtitle: '设置每节课的起止时间',
-                onTap: () => _showSectionTimesSettingDialog(
+                // 开学时间设置
+                _StartSemesterSettingItem(startDate: settingsState.startSemesterDate),
+                // 学期总周数设置
+                _buildSettingItem(
                   context,
-                  settingsState.sectionTimes,
-                  settingsState.maxSections,
+                  icon: Icons.calendar_view_week_outlined,
+                  title: '学期总周数',
+                  subtitle: '当前设置: ${settingsState.totalWeeks}周',
+                  onTap: () => _showTotalWeeksSettingDialog(context, settingsState.totalWeeks),
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // 数据管理分组
-              Text(
-                '数据管理',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                // 周末显示设置
+                _buildSettingItem(
+                  context,
+                  icon: Icons.weekend_outlined,
+                  title: '显示周末',
+                  subtitle: settingsState.showWeekend ? '已开启' : '已关闭',
+                  onTap: () => _showWeekendSettingDialog(context, settingsState.showWeekend),
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              // 导入课程
-              _buildSettingItem(
-                context,
-                icon: Icons.file_download_outlined,
-                title: '导入课程',
-                subtitle: '支持JSON文件导入（可含时间表配置）',
-                onTap: () => _showJsonImportDialog(context),
-              ),
-              // 教务导入
-              _buildSettingItem(
-                context,
-                icon: Icons.language_outlined,
-                title: '教务导入',
-                subtitle: '从教务系统导入课程',
-                onTap: () => {
-                  Navigator.pushNamed(context, RouteNames.JW_IMPORT_CONFIG)
-                },
-              ),
-              // 导出课程
-              _buildSettingItem(
-                context,
-                icon: Icons.file_upload_outlined,
-                title: '导出课程',
-                subtitle: '导出为JSON文件（含时间表配置）',
-                onTap: () => _showExportDialog(context),
-              ),
-
-              const SizedBox(height: 24),
-
-              // 其他设置分组
-              Text(
-                '其他',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                // 每日节数设置
+                _buildSettingItem(
+                  context,
+                  icon: Icons.format_list_numbered_outlined,
+                  title: '每日节数',
+                  subtitle: '当前设置: ${settingsState.maxSections}节',
+                  onTap: () => _showTimePeriodSettingDialog(
+                    context,
+                    settingsState.morningSections,
+                    settingsState.afternoonSections,
+                    settingsState.eveningSections,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                // 上课时间设置
+                _buildSettingItem(
+                  context,
+                  icon: Icons.access_time_outlined,
+                  title: '上课时间',
+                  subtitle: '设置每节课的起止时间',
+                  onTap: () => _showSectionTimesSettingDialog(
+                    context,
+                    settingsState.sectionTimes,
+                    settingsState.maxSections,
+                  ),
+                ),
 
-              // 主题设置
-              _buildSettingItem(
-                context,
-                icon: Icons.brightness_6_outlined,
-                title: '主题设置',
-                subtitle: _getThemeModeText(settingsState.themeMode),
-                onTap: () => _showThemeSettingDialog(context, settingsState.themeMode),
-              ),
-              // 添加小组件
-              _buildSettingItem(
-                context,
-                icon: Icons.widgets_outlined,
-                title: '添加小组件',
-                subtitle: '将“今日课程”桌面小组件固定到桌面',
-                onTap: () => _handleAddWidgetTap(context),
-              ),
-              // 关于应用
-              _buildSettingItem(
-                context,
-                icon: Icons.info_outline,
-                title: '关于应用',
-                subtitle: '版本 1.0.0',
-                onTap: () => _showAboutDialog(context),
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
-        );
-      },
+                const SizedBox(height: 24),
+
+                // 数据管理分组
+                Text(
+                  '数据管理',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 导入课程
+                _buildSettingItem(
+                  context,
+                  icon: Icons.file_download_outlined,
+                  title: '导入课程',
+                  subtitle: '支持JSON文件导入（可含时间表配置）',
+                  onTap: () => _showJsonImportDialog(context),
+                ),
+                // 教务导入
+                _buildSettingItem(
+                  context,
+                  icon: Icons.language_outlined,
+                  title: '教务导入',
+                  subtitle: '从教务系统导入课程',
+                  onTap: () => {
+                    Navigator.pushNamed(context, RouteNames.JW_IMPORT_CONFIG)
+                  },
+                ),
+                // 导出课程
+                _buildSettingItem(
+                  context,
+                  icon: Icons.file_upload_outlined,
+                  title: '导出课程',
+                  subtitle: '导出为JSON文件（含时间表配置）',
+                  onTap: () => _showExportDialog(context),
+                ),
+
+                const SizedBox(height: 24),
+
+                // 其他设置分组
+                Text(
+                  '其他',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 主题设置
+                _buildSettingItem(
+                  context,
+                  icon: Icons.brightness_6_outlined,
+                  title: '主题设置',
+                  subtitle: _getThemeModeText(settingsState.themeMode),
+                  onTap: () => _showThemeSettingDialog(context, settingsState.themeMode),
+                ),
+                // 添加小组件
+                _buildSettingItem(
+                  context,
+                  icon: Icons.widgets_outlined,
+                  title: '添加小组件',
+                  subtitle: '将“今日课程”桌面小组件固定到桌面',
+                  onTap: () => _handleAddWidgetTap(context),
+                ),
+                // 关于应用
+                _buildSettingItem(
+                  context,
+                  icon: Icons.info_outline,
+                  title: '关于应用',
+                  subtitle: '版本 1.0.0',
+                  onTap: () => _showAboutDialog(context),
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

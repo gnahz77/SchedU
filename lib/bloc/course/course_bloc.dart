@@ -14,7 +14,6 @@ class CourseBloc extends Bloc<CourseEvent, CourseState> {
     on<UpdateCourse>(_onUpdateCourse);
     on<DeleteCourse>(_onDeleteCourse);
     on<ImportCoursesFromJson>(_onImportCoursesFromJson);
-    on<ImportCoursesFromFile>(_onImportCoursesFromFile);
     on<ExportCoursesToFile>(_onExportCoursesToFile);
   }
 
@@ -63,37 +62,14 @@ class CourseBloc extends Bloc<CourseEvent, CourseState> {
     Emitter<CourseState> emit,
   ) async {
     try {
+      emit(const CourseProcessing('正在导入课程...'));
       await _courseRepository.importCoursesFromJson(event.jsonData);
       emit(const CourseOperationSuccess('课程导入成功'));
+      event.onComplete?.call(true, '课程导入成功');
     } catch (e) {
-      emit(CourseError('导入课程失败: ${e.toString()}'));
-    }
-  }
-
-  /// 处理从文件导入课程事件
-  Future<void> _onImportCoursesFromFile(
-    ImportCoursesFromFile event,
-    Emitter<CourseState> emit,
-  ) async {
-    try {
-      emit(const CourseProcessing('正在读取文件...'));
-      
-      // 选择并读取JSON文件
-      final importData = await CourseImportService.pickAndReadJsonFile();
-      
-      if (importData == null) {
-        emit(CourseInitial());
-        return;
-      }
-
-      // 发出确认状态，让UI显示确认对话框
-      emit(CourseImportConfirmation(
-        courseCount: importData.courses.length,
-        hasScheduleConfig: importData.scheduleConfig != null,
-        importData: importData,
-      ));
-    } catch (e) {
-      emit(CourseError('读取文件失败: ${e.toString()}'));
+      final errorMsg = '导入课程失败: ${e.toString()}';
+      emit(CourseError(errorMsg));
+      event.onComplete?.call(false, errorMsg);
     }
   }
 
@@ -109,7 +85,9 @@ class CourseBloc extends Bloc<CourseEvent, CourseState> {
       final courses = await _courseRepository.getAllCourses();
       
       if (courses.isEmpty) {
-        emit(const CourseError('没有可导出的课程数据'));
+        const msg = '没有可导出的课程数据';
+        emit(const CourseError(msg));
+        event.onComplete?.call(false, msg, null);
         return;
       }
 
@@ -126,8 +104,11 @@ class CourseBloc extends Bloc<CourseEvent, CourseState> {
         jsonData: jsonString,
         courseCount: courses.length,
       ));
+      event.onComplete?.call(true, '导出成功', jsonString);
     } catch (e) {
-      emit(CourseError('导出失败: ${e.toString()}'));
+      final errorMsg = '导出失败: ${e.toString()}';
+      emit(CourseError(errorMsg));
+      event.onComplete?.call(false, errorMsg, null);
     }
   }
 }

@@ -41,22 +41,6 @@ class CourseProcessing extends CourseState {
   List<Object?> get props => [message];
 }
 
-/// 需要确认导入
-class CourseImportConfirmation extends CourseState {
-  final int courseCount;
-  final bool hasScheduleConfig;
-  final dynamic importData;
-
-  const CourseImportConfirmation({
-    required this.courseCount,
-    required this.hasScheduleConfig,
-    required this.importData,
-  });
-
-  @override
-  List<Object?> get props => [courseCount, hasScheduleConfig, importData];
-}
-
 /// 导出成功
 class CourseExportSuccess extends CourseState {
   final String jsonData;

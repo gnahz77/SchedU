@@ -39,26 +39,20 @@ class DeleteCourse extends CourseEvent {
 /// 从JSON导入课程
 class ImportCoursesFromJson extends CourseEvent {
   final List<Map<String, dynamic>> jsonData;
+  final Function(bool success, String message)? onComplete;
 
-  const ImportCoursesFromJson(this.jsonData);
-
-  @override
-  List<Object?> get props => [jsonData];
-}
-
-/// 从文件导入课程（包含时间表配置）
-class ImportCoursesFromFile extends CourseEvent {
-  const ImportCoursesFromFile();
+  const ImportCoursesFromJson(this.jsonData, {this.onComplete});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [jsonData, onComplete];
 }
 
 /// 导出课程到文件
 class ExportCoursesToFile extends CourseEvent {
-  const ExportCoursesToFile();
+  final Function(bool success, String message, String? jsonData)? onComplete;
+
+  const ExportCoursesToFile({this.onComplete});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [onComplete];
 }
-
