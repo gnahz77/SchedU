@@ -651,10 +651,6 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('请在弹出的系统对话框中确认添加小组件')),
-    );
-
     try {
       final success = await _widgetChannel.invokeMethod<bool>('addDailyWidget');
       if (success == true && context.mounted) {

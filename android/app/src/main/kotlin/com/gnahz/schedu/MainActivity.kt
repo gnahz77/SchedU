@@ -1,5 +1,6 @@
 package com.gnahz.schedu
 
+import android.app.AppOpsManager
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.os.Build
@@ -8,6 +9,7 @@ import com.gnahz.schedu.widget.FlutterWebViewFactory
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+
 
 class MainActivity: FlutterActivity() {
 
@@ -45,6 +47,21 @@ class MainActivity: FlutterActivity() {
         // 小米系统需申请com.android.launcher.permission.INSTALL_SHORTCUT权限
         if (Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
             //TODO: 事真多
+            val mAppOps = context.getSystemService(APP_OPS_SERVICE) as AppOpsManager?
+            val pkgName = context.getApplicationContext().getPackageName()
+            val uid = context.getApplicationInfo().uid
+            val appOpsClass = Class.forName(AppOpsManager::class.java.getName())
+            val checkOpNoThrowMethod = appOpsClass.getDeclaredMethod(
+                "checkOpNoThrow",
+                Integer.TYPE,
+                Integer.TYPE,
+                String::class.java
+            )
+            val mode = checkOpNoThrowMethod.invoke(mAppOps, 10017, uid, pkgName) as Int //INSTALL_SHORTCUT is 10017
+            if (mode != AppOpsManager.MODE_ALLOWED) {
+                result.error("PERMISSION_DENIED", "请授予桌面快捷方式权限后重试", null)
+                return
+            }
         }
 
         val provider = ComponentName(this, DailyCourseWidgetReceiver::class.java)

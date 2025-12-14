@@ -9,8 +9,11 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
-import androidx.glance.action.actionStartActivity
+import androidx.glance.action.Action
+import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.action.ActionCallback
+import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
@@ -66,7 +69,7 @@ class DailyCourseWidget : GlanceAppWidget() {
                 .background(WidgetColors.surface)
                 .cornerRadius(16.dp)
                 .padding(12.dp)
-                .clickable(actionStartActivity<MainActivity>())
+                .clickable(actionRunCallback<OpenAppAction>())
         ) {
             // 头部：日期和刷新按钮
             HeaderRow(data.dateText)
@@ -464,3 +467,20 @@ class DailyCourseWidget : GlanceAppWidget() {
         }
     }
 }
+
+/**
+ * 打开应用的回调
+ */
+class OpenAppAction : ActionCallback {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        context.startActivity(intent)
+    }
+}
+
