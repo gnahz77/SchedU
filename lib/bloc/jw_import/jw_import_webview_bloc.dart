@@ -7,6 +7,7 @@ import 'package:schedu/model/ai_chat.dart';
 import 'package:schedu/model/course.dart';
 import 'package:schedu/repository/course_repository.dart';
 import 'package:schedu/service/openai_dart_impl.dart';
+import 'package:schedu/service/schedu_ai_service.dart';
 import 'jw_import_config_side_effect.dart';
 import 'jw_import_webview_event.dart';
 import 'jw_import_webview_state.dart';
@@ -123,14 +124,104 @@ class JwImportWebviewBloc extends Bloc<JwImportWebviewEvent, JwImportWebviewStat
       return;
     }
 
-    // 检查是否是AI导入模式
-    if (args is! AiImportWebviewArguments) {
+    // 判断导入模式
+    if (args is SystemServiceWebviewArguments) {
+      // 使用系统免费解析服务
+      await _parseWithSystemService(event, emit);
+    } else if (args is AiImportWebviewArguments) {
+      // 使用用户配置的AI服务
+      await _parseWithCustomAIService(args, event, emit);
+    } else {
       _emitSideEffect(const ShowSnackBarMessage('JS导入功能开发中...', isError: false));
-      return;
     }
+  }
 
-    final aiArgs = args;
+  /// 使用系统免费解析服务
+  Future<void> _parseWithSystemService(
+    ParseAndImportCourses event,
+    Emitter<JwImportWebviewState> emit,
+  ) async {
+    emit(state.copyWith(
+      isParsing: true,
+      parsingStatus: '正在获取页面内容...',
+      aiResponseLength: 0,
+    ));
 
+    try {
+      emit(state.copyWith(parsingStatus: '正在调用系统解析服务...'));
+
+      String htmlContent = event.data['html'] as String;
+      String rawText = event.data['text'] as String;
+
+      // 创建系统服务实例
+      final schedUService = SchedUAIService();
+
+      // 使用流式API接收数据
+      String fullResponse = '';
+      await for (final streamEvent in schedUService.parseStream(
+        html: htmlContent,
+        rawText: rawText,
+      )) {
+        if (streamEvent is SchedUStreamStartEvent) {
+          emit(state.copyWith(
+            parsingStatus: streamEvent.message,
+          ));
+        } else if (streamEvent is SchedUStreamProgressEvent) {
+          emit(state.copyWith(
+            parsingStatus: '正在接收解析结果...',
+            aiResponseLength: streamEvent.length,
+          ));
+        } else if (streamEvent is SchedUStreamCompleteEvent) {
+          if (streamEvent.success && streamEvent.content != null) {
+            fullResponse = streamEvent.content!;
+          } else {
+            throw Exception(streamEvent.message ?? '解析失败');
+          }
+        } else if (streamEvent is SchedUStreamErrorEvent) {
+          throw Exception(streamEvent.message);
+        }
+      }
+
+      emit(state.copyWith(parsingStatus: '正在解析返回结果...'));
+
+      // 解析返回的JSON
+      final courses = _parseCoursesFromResponse(fullResponse);
+
+      if (courses.isEmpty) {
+        emit(state.copyWith(
+          isParsing: false,
+          clearParsingStatus: true,
+          aiResponseLength: 0,
+        ));
+        _emitSideEffect(const ShowSnackBarMessage('未能从页面中解析出课程数据', isError: true));
+        return;
+      }
+
+      // 保存解析结果并显示确认对话框
+      emit(state.copyWith(
+        isParsing: false,
+        parsedCourses: courses,
+        showImportConfirmDialog: true,
+        clearParsingStatus: true,
+        aiResponseLength: 0,
+      ));
+      _emitSideEffect(ShowImportConfirmDialog(courses.length));
+    } catch (e) {
+      emit(state.copyWith(
+        isParsing: false,
+        clearParsingStatus: true,
+        aiResponseLength: 0,
+      ));
+      _emitSideEffect(ShowSnackBarMessage('解析失败: $e', isError: true));
+    }
+  }
+
+  /// 使用用户配置的AI服务
+  Future<void> _parseWithCustomAIService(
+    AiImportWebviewArguments aiArgs,
+    ParseAndImportCourses event,
+    Emitter<JwImportWebviewState> emit,
+  ) async {
     emit(state.copyWith(
       isParsing: true,
       parsingStatus: '正在获取页面内容...',

@@ -50,12 +50,20 @@ class JwImportConfigLoaded extends JwImportConfigState {
     this.isTestingService = false,
   });
 
+  /// 系统免费服务的标识名称
+  static const String systemFreeServiceName = '系统免费解析服务';
+
   /// 获取当前选中的服务提供商
   AiServiceProvider? get selectedProvider {
     if (selectedProviderIndex >= 0 && selectedProviderIndex < aiProviders.length) {
       return aiProviders[selectedProviderIndex];
     }
     return null;
+  }
+
+  /// 是否使用系统免费解析服务
+  bool get isSystemFreeService {
+    return selectedProvider?.name == systemFreeServiceName;
   }
 
   /// 是否使用自定义服务商

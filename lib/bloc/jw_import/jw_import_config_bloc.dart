@@ -5,6 +5,7 @@ import '../../model/ai_chat.dart';
 import '../../model/ai_service_provider.dart';
 import '../../repository/jw_import_settings.dart';
 import '../../service/openai_dart_impl.dart';
+import '../../service/schedu_ai_service.dart';
 import 'jw_import_config_event.dart';
 import 'jw_import_config_state.dart';
 import 'jw_import_config_side_effect.dart';
@@ -56,7 +57,16 @@ class JwImportConfigBloc
     emit(const JwImportConfigLoading());
     try {
       // 加载AI服务提供商
-      final aiProviders = await AiServiceProvider.loadProviders();
+      final loadedProviders = await AiServiceProvider.loadProviders();
+      
+      // 在首位添加系统免费解析服务
+      final systemFreeService = AiServiceProvider(
+        name: JwImportConfigLoaded.systemFreeServiceName,
+        baseUrl: '', // 系统服务使用默认地址
+        defaultModel: '',
+        icon: '',
+      );
+      final aiProviders = [systemFreeService, ...loadedProviders];
 
       // 加载保存的配置
       final jwUrl = await JwImportSettings.getJwUrl();
@@ -102,7 +112,15 @@ class JwImportConfigBloc
     if (state is! JwImportConfigLoaded) return;
 
     try {
-      final aiProviders = await AiServiceProvider.loadProviders();
+      final loadedProviders = await AiServiceProvider.loadProviders();
+      // 在首位添加系统免费解析服务
+      final systemFreeService = AiServiceProvider(
+        name: JwImportConfigLoaded.systemFreeServiceName,
+        baseUrl: '',
+        defaultModel: '',
+        icon: '',
+      );
+      final aiProviders = [systemFreeService, ...loadedProviders];
       emit((state as JwImportConfigLoaded).copyWith(aiProviders: aiProviders));
     } catch (e) {
       _emitSideEffect(ShowErrorMessage('加载AI服务提供商失败: $e'));
@@ -283,24 +301,37 @@ class JwImportConfigBloc
           _emitSideEffect(const ShowErrorMessage('JS导入模式尚未实现'));
           return;
         }
-        final resolvedBaseUrl = currentState.apiUrl.isEmpty
-            ? currentState.selectedProvider?.baseUrl ?? ''
-            : currentState.apiUrl;
-        final args = currentState.importMode == 'ai'
-            ? AiImportWebviewArguments(
-                jwUrl: currentState.jwUrl,
-                providerName: providerName,
-                apiKey: currentState.apiKey,
-                aiModel: currentState.aiModel,
-                maxTextLength: currentState.maxTextLength,
-                baseUrl: resolvedBaseUrl,
-                strongPrompt: "导入前请确认已登录并打开 周/学期 课表页面，以确保能识别到网页中的课程信息。"
-                    "\n\n导入前建议关闭不必要的弹窗和广告，以免影响对页面的解析。",
-              )
-            : JsImportWebviewArguments(
-                jwUrl: currentState.jwUrl,
-                script: '',
-              );
+        
+        final strongPrompt = "导入前请确认已登录并打开 周/学期 课表页面，以确保能识别到网页中的课程信息。"
+            "\n\n导入前建议关闭不必要的弹窗和广告，以免影响对页面的解析。";
+        
+        JwImportWebviewArguments args;
+        
+        // 判断是否使用系统免费服务
+        if (currentState.isSystemFreeService) {
+          args = SystemServiceWebviewArguments(
+            jwUrl: currentState.jwUrl,
+            strongPrompt: strongPrompt,
+          );
+        } else if (currentState.importMode == 'ai') {
+          final resolvedBaseUrl = currentState.apiUrl.isEmpty
+              ? currentState.selectedProvider?.baseUrl ?? ''
+              : currentState.apiUrl;
+          args = AiImportWebviewArguments(
+            jwUrl: currentState.jwUrl,
+            providerName: providerName,
+            apiKey: currentState.apiKey,
+            aiModel: currentState.aiModel,
+            maxTextLength: currentState.maxTextLength,
+            baseUrl: resolvedBaseUrl,
+            strongPrompt: strongPrompt,
+          );
+        } else {
+          args = JsImportWebviewArguments(
+            jwUrl: currentState.jwUrl,
+            script: '',
+          );
+        }
         _emitSideEffect(NavigateToImportWebView(args));
       }
     } catch (e) {
@@ -316,6 +347,27 @@ class JwImportConfigBloc
 
     final currentState = state as JwImportConfigLoaded;
 
+    // 判断是否使用系统免费解析服务
+    if (currentState.isSystemFreeService) {
+      emit(currentState.copyWith(isTestingService: true));
+      try {
+        final schedUService = SchedUAIService();
+        final result = await schedUService.testService();
+        
+        if (result.success) {
+          _emitSideEffect(ShowSuccessMessage('系统服务测试成功! ${result.timestamp != null ? "(服务器时间: ${result.timestamp})" : ""}'));
+        } else {
+          _emitSideEffect(ShowErrorMessage('系统服务测试失败: ${result.message}'));
+        }
+      } catch (e) {
+        _emitSideEffect(ShowErrorMessage('系统服务测试失败: $e'));
+      } finally {
+        emit(currentState.copyWith(isTestingService: false));
+      }
+      return;
+    }
+
+    // 其他AI服务商的测试逻辑
     if (currentState.apiKey.isEmpty) {
       _emitSideEffect(const ShowErrorMessage('请先输入API Key'));
       return;

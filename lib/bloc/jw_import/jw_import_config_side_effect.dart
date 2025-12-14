@@ -79,6 +79,17 @@ class AiImportWebviewArguments extends JwImportWebviewArguments {
   List<Object?> get props => super.props + [providerName, apiKey, aiModel, maxTextLength, baseUrl];
 }
 
+/// 系统免费解析服务的arguments
+class SystemServiceWebviewArguments extends JwImportWebviewArguments {
+  const SystemServiceWebviewArguments({
+    required super.jwUrl,
+    super.strongPrompt
+  }): super(importMode: 'system');
+
+  @override
+  List<Object?> get props => super.props;
+}
+
 /// JS导入模式的arguments
 class JsImportWebviewArguments extends JwImportWebviewArguments {
   final String script;
@@ -101,3 +112,4 @@ class NavigateToImportWebView extends JwImportConfigSideEffect {
   @override
   List<Object?> get props => [arguments];
 }
+
