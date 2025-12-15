@@ -7,7 +7,8 @@
     <application
         android:label="SchedU"
         android:name="${applicationName}"
-        android:icon="@drawable/schedu_icon">
+        android:icon="@drawable/schedu_icon"
+        android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"
