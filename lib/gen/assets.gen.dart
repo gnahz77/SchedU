@@ -86,11 +86,17 @@ class Assets {
 
   static const String aiServiceProvider = 'assets/ai_service_provider.json';
   static const $AssetsImagesGen images = $AssetsImagesGen();
+  static const String libLicense = 'assets/lib_license.txt';
   static const String prompt = 'assets/prompt.txt';
   static const String scheduleParse = 'assets/schedule_parse.js';
 
   /// List of all assets
-  static List<String> get values => [aiServiceProvider, prompt, scheduleParse];
+  static List<String> get values => [
+    aiServiceProvider,
+    libLicense,
+    prompt,
+    scheduleParse,
+  ];
 }
 
 class AssetGenImage {

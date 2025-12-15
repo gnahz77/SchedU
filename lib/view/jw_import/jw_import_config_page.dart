@@ -59,7 +59,7 @@ class _JwImportConfigPageContentState extends State<JwImportConfigPage> {
       return;
     }
 
-    if (state.importMode == 'ai' && state.apiKey.isEmpty) {
+    if (!state.isSystemFreeService && state.importMode == 'ai' && state.apiKey.isEmpty) {
       _showSnackBar(context, '请先配置API Key', isError: true);
       return;
     }

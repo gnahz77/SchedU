@@ -75,3 +75,4 @@ flutter:
     - assets/prompt.txt
     - assets/schedule_parse.js
     - assets/ai_service_provider.json
+    - assets/lib_license.txt

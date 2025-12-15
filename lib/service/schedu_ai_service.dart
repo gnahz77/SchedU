@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 
 /// SchedU系统自带的AI课程表解析服务
 class SchedUAIService {
-  static const String _defaultBaseUrl = 'https://schedu.gnahz77.xyz/schedu/api/ai';
+  static const String _defaultBaseUrl = 'http://schedu.iema.cn/schedu/api/ai';
   
   final String baseUrl;
   final Dio _dio;

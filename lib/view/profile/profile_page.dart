@@ -796,7 +796,7 @@ class ProfilePage extends StatelessWidget with ImportExportMixin {
         height: 48,
       ),
       children: [
-        const Text('SchedU是一个简洁优雅的课程表应用，采用Material 3设计风格。'),
+        const Text('SchedU是一个简洁优雅、开源免费的课程表应用，采用Material 3设计风格。'),
         const SizedBox(height: 8),
         const Text('支持课程管理、提醒设置、多视图展示、等功能。可以从JSON文件或教务系统导入课程数据。'),
       ],
