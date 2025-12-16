@@ -73,7 +73,7 @@ class DailyCourseWidget : GlanceAppWidget() {
         ) {
             // 头部：日期和刷新按钮
             HeaderRow(data.dateText)
-            
+
             Spacer(modifier = GlanceModifier.height(8.dp))
 
             // 课程列表
@@ -103,9 +103,9 @@ class DailyCourseWidget : GlanceAppWidget() {
                     fontWeight = FontWeight.Bold
                 )
             )
-            
+
             Spacer(modifier = GlanceModifier.width(8.dp))
-            
+
             Text(
                 text = dateText,
                 style = TextStyle(
@@ -114,9 +114,9 @@ class DailyCourseWidget : GlanceAppWidget() {
                     fontWeight = FontWeight.Medium
                 )
             )
-            
+
             Spacer(modifier = GlanceModifier.defaultWeight())
-            
+
             // 刷新按钮
             Box(
                 modifier = GlanceModifier
@@ -162,8 +162,6 @@ class DailyCourseWidget : GlanceAppWidget() {
             CourseStatus.NOT_STARTED -> WidgetColors.cardBackground
         }
 
-        val textAlpha = if (status == CourseStatus.FINISHED) 0.5f else 1f
-
         Box(
             modifier = GlanceModifier
                 .fillMaxWidth()
@@ -171,22 +169,26 @@ class DailyCourseWidget : GlanceAppWidget() {
                 .cornerRadius(12.dp)
                 .padding(12.dp)
         ) {
-            Column(modifier = GlanceModifier.fillMaxWidth()) {
+            Column(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .clickable(actionRunCallback<OpenAppAction>())
+            ) {
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // 时间标签
                     TimeTag(timeText, status)
-                    
+
                     Spacer(modifier = GlanceModifier.width(8.dp))
-                    
+
                     // 课程名称
                     Column(modifier = GlanceModifier.defaultWeight()) {
                         Text(
                             text = course.name,
                             style = TextStyle(
-                                color = if (status == CourseStatus.FINISHED) 
+                                color = if (status == CourseStatus.FINISHED)
                                     WidgetColors.textSecondary else WidgetColors.onSurface,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -194,7 +196,7 @@ class DailyCourseWidget : GlanceAppWidget() {
                             maxLines = 1
                         )
                     }
-                    
+
                     // 状态指示
                     if (status == CourseStatus.ONGOING) {
                         OngoingIndicator()
@@ -208,9 +210,9 @@ class DailyCourseWidget : GlanceAppWidget() {
                         )
                     }
                 }
-                
+
                 Spacer(modifier = GlanceModifier.height(6.dp))
-                
+
                 // 地点和教师
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
@@ -242,7 +244,7 @@ class DailyCourseWidget : GlanceAppWidget() {
             CourseStatus.FINISHED -> WidgetColors.finishedTagBg
             CourseStatus.NOT_STARTED -> WidgetColors.primaryContainer
         }
-        
+
         val textColor = when (status) {
             CourseStatus.ONGOING -> WidgetColors.onPrimary
             CourseStatus.FINISHED -> WidgetColors.textSecondary
@@ -300,42 +302,41 @@ class DailyCourseWidget : GlanceAppWidget() {
         tomorrowCourses: List<CourseWithStatus>,
         sectionTimes: List<SectionTime>,
     ) {
-        Column(
-            modifier = GlanceModifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = GlanceModifier.height(16.dp))
-            
-            Image(
-                provider = ImageProvider(R.drawable.ic_event_available),
-                contentDescription = null,
-                modifier = GlanceModifier.size(48.dp)
-            )
-            
-            Spacer(modifier = GlanceModifier.height(8.dp))
-            
-            Text(
-                text = "今日无课程安排",
-                style = TextStyle(
-                    color = WidgetColors.textSecondary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-            
-            Text(
-                text = "享受悠闲的一天吧！",
-                style = TextStyle(
-                    color = WidgetColors.textSecondary,
-                    fontSize = 12.sp
-                )
-            )
-            
-            Spacer(modifier = GlanceModifier.height(16.dp))
-            
-            // 明日课程预告
-            if (tomorrowCourses.isNotEmpty()) {
-                TomorrowPreview(tomorrowCourses, sectionTimes)
+        LazyColumn {
+            item {
+                Column(
+                    modifier = GlanceModifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = GlanceModifier.height(16.dp))
+                    if (tomorrowCourses.isEmpty()) {
+                        // 今日无课程安排
+                        Image(
+                            provider = ImageProvider(R.drawable.ic_event_available),
+                            contentDescription = null,
+                            modifier = GlanceModifier.size(48.dp)
+                        )
+                        Spacer(modifier = GlanceModifier.height(8.dp))
+                        Text(
+                            text = "今日无课程安排",
+                            style = TextStyle(
+                                color = WidgetColors.textSecondary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                        Text(
+                            text = "享受悠闲的一天吧！",
+                            style = TextStyle(
+                                color = WidgetColors.textSecondary,
+                                fontSize = 12.sp
+                            )
+                        )
+                    } else {
+                        // 明日课程预告
+                        TomorrowPreview(tomorrowCourses, sectionTimes)
+                    }
+                }
             }
         }
     }
@@ -351,7 +352,7 @@ class DailyCourseWidget : GlanceAppWidget() {
                 CourseCard(courseWithStatus, sectionTimes)
                 Spacer(modifier = GlanceModifier.height(8.dp))
             }
-            
+
             item {
                 Spacer(modifier = GlanceModifier.height(8.dp))
                 TomorrowPreview(tomorrowCourses, sectionTimes)
@@ -380,9 +381,9 @@ class DailyCourseWidget : GlanceAppWidget() {
                         fontWeight = FontWeight.Bold
                     )
                 )
-                
+
                 Spacer(modifier = GlanceModifier.height(8.dp))
-                
+
                 if (tomorrowCourses.isEmpty()) {
                     Text(
                         text = "明日暂无课程安排",
@@ -392,18 +393,10 @@ class DailyCourseWidget : GlanceAppWidget() {
                         )
                     )
                 } else {
-                    tomorrowCourses.take(3).forEach { courseWithStatus ->
-                        TomorrowCourseRow(courseWithStatus.course, sectionTimes)
+                    tomorrowCourses.forEach { courseWithStatus ->
+                        CourseCard(courseWithStatus, sectionTimes)
+//                        TomorrowCourseRow(courseWithStatus.course, sectionTimes)
                         Spacer(modifier = GlanceModifier.height(6.dp))
-                    }
-                    if (tomorrowCourses.size > 3) {
-                        Text(
-                            text = "还有 ${tomorrowCourses.size - 3} 节课...",
-                            style = TextStyle(
-                                color = WidgetColors.textSecondary,
-                                fontSize = 11.sp
-                            )
-                        )
                     }
                 }
             }
@@ -416,7 +409,7 @@ class DailyCourseWidget : GlanceAppWidget() {
         sectionTimes: List<SectionTime>,
     ) {
         val timeText = getCourseTimeText(course, sectionTimes)
-        
+
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -436,9 +429,9 @@ class DailyCourseWidget : GlanceAppWidget() {
                     )
                 )
             }
-            
+
             Spacer(modifier = GlanceModifier.width(8.dp))
-            
+
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
                     text = course.name,
