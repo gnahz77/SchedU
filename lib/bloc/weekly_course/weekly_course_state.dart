@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:schedu/model/app_settings.dart';
 import 'package:schedu/model/course.dart';
 
 /// 周课程状态的基类
@@ -23,31 +24,29 @@ class WeeklyCourseLoaded extends WeeklyCourseState {
   final int currentWeek;
   final DateTime weekStart;
   final List<Course> courses; // 当前周的课程
-  final bool showWeekend;
+  final AppSettings settings;
 
   const WeeklyCourseLoaded({
     required this.currentWeek,
     required this.weekStart,
     required this.courses,
-    required this.showWeekend,
+    required this.settings,
   });
 
   @override
-  List<Object?> get props => [currentWeek, weekStart, courses, showWeekend];
+  List<Object?> get props => [currentWeek, weekStart, courses, settings];
 
   WeeklyCourseLoaded copyWith({
     int? currentWeek,
-    int? totalWeeks,
     DateTime? weekStart,
     List<Course>? courses,
-    bool? showWeekend,
-    int? actualCurrentWeek,
+    AppSettings? settings,
   }) {
     return WeeklyCourseLoaded(
       currentWeek: currentWeek ?? this.currentWeek,
       weekStart: weekStart ?? this.weekStart,
       courses: courses ?? this.courses,
-      showWeekend: showWeekend ?? this.showWeekend,
+      settings: settings ?? this.settings,
     );
   }
 }

@@ -1,34 +1,50 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/widgets.dart';
 import 'package:schedu/model/course.dart';
-import 'package:schedu/repository/settings_manager.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 /// 课程数据仓库接口
 abstract class CourseRepository {
+
+  // 课程数据变更流
+  abstract final Stream<void> stream;
+
+  void dispose() {}
+
   Future<List<Course>> getAllCourses();
   Future<void> insertCourse(Course course);
   Future<void> updateCourse(Course course);
   Future<void> deleteCourse(Course course);
   Future<void> insertCourses(List<Course> courses);
-  Future<List<Course>> getCoursesForDay(DateTime date, int currentWeek);
-  Future<List<Course>> getCoursesForWeek(DateTime weekStart, int currentWeek);
+  Future<List<Course>> getCoursesForDay(int week, int day);
+  Future<List<Course>> getCoursesForWeek(int week);
   Future<void> importCoursesFromJson(List<Map<String, dynamic>> jsonData);
 }
 
 /// 课程数据仓库实现
-class CourseRepositoryImpl implements CourseRepository {
+class CourseRepositoryImpl extends CourseRepository {
   static const String _tableName = 'courses';
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
   static const int _colorSlotCount = 12; // Keep in sync with AppColors palettes
   
   Database? _database;
-
   /// 获取数据库实例
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
+  }
+
+  final _stream = StreamController<void>.broadcast();
+  @override
+  Stream<void> get stream => _stream.stream;
+
+  @override
+  void dispose() {
+    _stream.close();
+    super.dispose();
   }
 
   /// 初始化数据库
@@ -49,7 +65,8 @@ class CourseRepositoryImpl implements CourseRepository {
             weeks TEXT NOT NULL,
             day INTEGER NOT NULL,
             sections TEXT NOT NULL,
-            color_id INTEGER
+            color_id INTEGER,
+            weeks_mask INTEGER DEFAULT 0
           )
         ''');
       },
@@ -57,9 +74,35 @@ class CourseRepositoryImpl implements CourseRepository {
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE $_tableName ADD COLUMN color_id INTEGER');
         }
+        if (oldVersion < 3) {
+          // 添加 weeks_mask 列以实现高效的 SQL 过滤
+          await db.execute('ALTER TABLE $_tableName ADD COLUMN weeks_mask INTEGER DEFAULT 0');
+
+          // 迁移现有数据：从周数 JSON 计算mask
+          final List<Map<String, dynamic>> maps = await db.query(_tableName);
+          final batch = db.batch();
+
+          for (final map in maps) {
+            final id = map['id'];
+            try {
+              final weeks = List<int>.from(jsonDecode(map['weeks']));
+              final mask = _calculateWeeksMask(weeks);
+              batch.update(
+                _tableName,
+                {'weeks_mask': mask},
+                where: 'id = ?',
+                whereArgs: [id]
+              );
+            } catch (e) {
+              debugPrint('Error migrating course id $id for weeks_mask: $e');
+            }
+          }
+          await batch.commit(noResult: true);
+        }
       },
     );
   }
+
   @override
   Future<List<Course>> getAllCourses() async {
     final db = await database;
@@ -76,6 +119,7 @@ class CourseRepositoryImpl implements CourseRepository {
       _courseToMap(normalized),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    _stream.add(null);
   }
 
   @override
@@ -92,6 +136,7 @@ class CourseRepositoryImpl implements CourseRepository {
         jsonEncode(course.sections),
       ],
     );
+    _stream.add(null);
   }
 
   @override
@@ -106,6 +151,7 @@ class CourseRepositoryImpl implements CourseRepository {
         jsonEncode(course.sections),
       ],
     );
+    _stream.add(null);
   }
 
   @override
@@ -123,25 +169,35 @@ class CourseRepositoryImpl implements CourseRepository {
     }
     
     await batch.commit();
+    _stream.add(null);
   }
 
   @override
-  Future<List<Course>> getCoursesForDay(DateTime date, int currentWeek) async {
-    final allCourses = await getAllCourses();
-    final dayOfWeek = date.weekday;
-    
-    return allCourses.where((course) {
-      return course.day == dayOfWeek && course.weeks.contains(currentWeek);
-    }).toList();
+  Future<List<Course>> getCoursesForDay(int week, int day) async {
+    final db = await database;
+    final mask = 1 << week;
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      _tableName,
+      where: 'day = ? AND (weeks_mask & ?) != 0',
+      whereArgs: [day, mask],
+    );
+
+    return maps.map((map) => _mapToCourse(map)).toList();
   }
 
   @override
-  Future<List<Course>> getCoursesForWeek(DateTime weekStart, int currentWeek) async {
-    final allCourses = await getAllCourses();
-    
-    return allCourses.where((course) {
-      return course.weeks.contains(currentWeek);
-    }).toList();
+  Future<List<Course>> getCoursesForWeek(int week) async {
+    final db = await database;
+    final mask = 1 << week;
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      _tableName,
+      where: '(weeks_mask & ?) != 0',
+      whereArgs: [mask],
+    );
+
+    return maps.map((map) => _mapToCourse(map)).toList();
   }
 
   @override
@@ -163,6 +219,7 @@ class CourseRepositoryImpl implements CourseRepository {
         );
       }
     });
+    _stream.add(null);
   }
 
   /// 将Course对象转换为Map
@@ -175,7 +232,20 @@ class CourseRepositoryImpl implements CourseRepository {
       'day': course.day,
       'sections': jsonEncode(course.sections),
       'color_id': course.colorId,
+      'weeks_mask': _calculateWeeksMask(course.weeks),
     };
+  }
+
+  /// 计算周数掩码 (Bitmask)
+  int _calculateWeeksMask(List<int> weeks) {
+    int mask = 0;
+    for (final week in weeks) {
+      // 最多62周 (Dart/SQLite int is 64-bit)
+      if (week >= 0 && week < 63) {
+        mask |= (1 << week);
+      }
+    }
+    return mask;
   }
 
   /// 将Map转换为Course对象

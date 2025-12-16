@@ -3,6 +3,7 @@ package com.gnahz.schedu.data
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.core.content.edit
 import com.gnahz.schedu.model.Course
 import com.gnahz.schedu.model.CourseStatus
 import com.gnahz.schedu.model.CourseWithStatus
@@ -23,7 +24,6 @@ class CourseRepository(private val context: Context) {
         private const val FLUTTER_PREFS_NAME = "FlutterSharedPreferences"
         private const val KEY_SECTION_TIMES = "flutter.section_times"
         private const val KEY_START_SEMESTER = "flutter.start_semester"
-        private const val KEY_TOTAL_WEEKS = "flutter.total_weeks"
 
         // 默认节次时间
         private val DEFAULT_SECTION_TIMES = listOf(
@@ -46,7 +46,23 @@ class CourseRepository(private val context: Context) {
      * 获取Flutter SharedPreferences
      */
     private fun getFlutterPrefs(): SharedPreferences {
-        return context.getSharedPreferences(FLUTTER_PREFS_NAME, Context.MODE_PRIVATE)
+        return context.getSharedPreferences(FLUTTER_PREFS_NAME, Context.MODE_PRIVATE).apply {
+            // 旧版本兼容
+            if (!contains(KEY_START_SEMESTER)) {
+                try {
+                    val startSemester = getString(KEY_START_SEMESTER, null)
+                    if (startSemester != null) {
+                        val millis = startSemester.toLongOrNull()
+                        if (millis != null) {
+                            edit {
+                                remove(KEY_START_SEMESTER)
+                                putLong(KEY_START_SEMESTER, millis)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {}
+            }
+        }
     }
 
     /**
@@ -74,11 +90,9 @@ class CourseRepository(private val context: Context) {
      * 获取开学时间
      */
     private fun getStartSemesterDate(): Calendar? {
-        val prefs = getFlutterPrefs()
-        val timestamp = prefs.getString(KEY_START_SEMESTER, null)
-        if (timestamp.isNullOrEmpty()) return null
         return try {
-            val millis = timestamp.toLong()
+            val prefs = getFlutterPrefs()
+            val millis = prefs.getLong(KEY_START_SEMESTER, System.currentTimeMillis())
             Calendar.getInstance().apply { timeInMillis = millis }
         } catch (e: Exception) {
             null
@@ -93,6 +107,17 @@ class CourseRepository(private val context: Context) {
         val diff = date.timeInMillis - startDate.timeInMillis
         if (diff < 0) return 1
         return (diff / (7 * 24 * 60 * 60 * 1000L)).toInt() + 1
+    }
+
+    /**
+     * 计算周数掩码 (Bitmask)
+     */
+    private fun calculateWeeksMask(week: Int): Long {
+        return if (week >= 0 && week < 63) {
+            1L shl week
+        } else {
+            0L
+        }
     }
 
     /**
@@ -159,9 +184,55 @@ class CourseRepository(private val context: Context) {
             else -> 1
         }
 
-        return getAllCourses()
-            .filter { it.day == dayOfWeek && it.weeks.contains(weekNumber) }
-            .sortedBy { it.sections.firstOrNull() ?: 0 }
+        val dbPath = context.getDatabasePath("schedu.db")
+        if (!dbPath.exists()) return emptyList()
+
+        val courses = mutableListOf<Course>()
+        try {
+            val db = DatabaseHelper(context).readableDatabase
+            val mask = calculateWeeksMask(weekNumber)
+
+            // 使用位掩码高效筛选：(weeks_mask & mask) != 0
+            val cursor = db.rawQuery(
+                """
+                SELECT * FROM ${DatabaseHelper.TABLE_COURSES}
+                WHERE ${DatabaseHelper.COLUMN_DAY} = ? 
+                AND (${DatabaseHelper.COLUMN_WEEKS_MASK} & ?) != 0
+                """,
+                arrayOf(dayOfWeek.toString(), mask.toString())
+            )
+            cursor.use {
+                while (it.moveToNext()) {
+                    val name = it.getString(it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME))
+                    val position = it.getString(it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_POSITION))
+                    val teacher = it.getString(it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_TEACHER))
+                    val weeksJson = it.getString(it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_WEEKS))
+                    val day = it.getInt(it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_DAY))
+                    val sectionsJson = it.getString(it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_SECTIONS))
+                    val colorIdIndex = it.getColumnIndex(DatabaseHelper.COLUMN_COLOR_ID)
+                    val colorId = if (colorIdIndex >= 0 && !it.isNull(colorIdIndex)) {
+                        it.getInt(colorIdIndex)
+                    } else null
+
+                    val weeks: List<Int> = gson.fromJson(weeksJson, object : TypeToken<List<Int>>() {}.type)
+                    val sections: List<Int> = gson.fromJson(sectionsJson, object : TypeToken<List<Int>>() {}.type)
+
+                    courses.add(Course(
+                        name = name,
+                        position = position,
+                        teacher = teacher,
+                        weeks = weeks,
+                        day = day,
+                        sections = sections,
+                        colorId = colorId
+                    ))
+                }
+            }
+            db.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return courses.sortedBy { it.sections.firstOrNull() ?: 0 }
     }
 
     /**
@@ -214,27 +285,6 @@ class CourseRepository(private val context: Context) {
             CourseStatus.FINISHED
         } else {
             CourseStatus.NOT_STARTED
-        }
-    }
-
-    /**
-     * 获取课程时间文本
-     */
-    fun getCourseTimeText(course: Course, sectionTimes: List<SectionTime>): String {
-        if (course.sections.isEmpty() || sectionTimes.isEmpty()) {
-            return course.timeText
-        }
-
-        val startSection = course.sections.first()
-        val endSection = course.sections.last()
-
-        val startTime = sectionTimes.find { it.section == startSection }?.startTime
-        val endTime = sectionTimes.find { it.section == endSection }?.endTime
-
-        return if (startTime != null && endTime != null) {
-            "$startTime-$endTime"
-        } else {
-            course.timeText
         }
     }
 

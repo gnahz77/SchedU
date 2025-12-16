@@ -37,9 +37,6 @@ class JwImportWebviewState extends Equatable {
   /// 解析出的课程列表（待确认导入）
   final List<Course>? parsedCourses;
   
-  /// 是否显示导入确认对话框
-  final bool showImportConfirmDialog;
-  
   /// 是否正在导入
   final bool isImporting;
 
@@ -55,7 +52,6 @@ class JwImportWebviewState extends Equatable {
     this.parsingStatus,
     this.aiResponseLength = 0,
     this.parsedCourses,
-    this.showImportConfirmDialog = false,
     this.isImporting = false,
   });
 
@@ -71,7 +67,6 @@ class JwImportWebviewState extends Equatable {
     String? parsingStatus,
     int? aiResponseLength,
     List<Course>? parsedCourses,
-    bool? showImportConfirmDialog,
     bool? isImporting,
     bool clearParsedCourses = false,
     bool clearParsingStatus = false,
@@ -88,7 +83,6 @@ class JwImportWebviewState extends Equatable {
       parsingStatus: clearParsingStatus ? null : (parsingStatus ?? this.parsingStatus),
       aiResponseLength: aiResponseLength ?? this.aiResponseLength,
       parsedCourses: clearParsedCourses ? null : (parsedCourses ?? this.parsedCourses),
-      showImportConfirmDialog: showImportConfirmDialog ?? this.showImportConfirmDialog,
       isImporting: isImporting ?? this.isImporting,
     );
   }
@@ -106,7 +100,6 @@ class JwImportWebviewState extends Equatable {
         parsingStatus,
         aiResponseLength,
         parsedCourses,
-        showImportConfirmDialog,
         isImporting,
       ];
 }

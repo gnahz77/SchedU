@@ -79,16 +79,11 @@ class _DailyCoursePageState extends State<DailyCoursePage>
                 ),
                 // 课程列表
                 Expanded(
-                  child: BlocBuilder<SettingsBloc, SettingsState>(
-                    builder: (context, settingsState) {
-                      return _buildCourseContent(
-                        todayCourses: dailyState.todayCourses,
-                        tomorrowCourses: dailyState.tomorrowCourses,
-                        sectionTimes: dailyState.sectionTimes,
-                        settings: settingsState,
-                        today: dailyState.today,
-                      );
-                    },
+                  child: _buildCourseContent(
+                    todayCourses: dailyState.todayCourses,
+                    tomorrowCourses: dailyState.tomorrowCourses,
+                    sectionTimes: dailyState.sectionTimes,
+                    today: dailyState.today,
                   ),
                 ),
               ],
@@ -107,7 +102,6 @@ class _DailyCoursePageState extends State<DailyCoursePage>
     required List<CourseWithStatus> todayCourses,
     required List<CourseWithStatus> tomorrowCourses,
     required List<SectionTime> sectionTimes,
-    required SettingsState settings,
     required DateTime today,
   }) {
     if (todayCourses.isEmpty) {

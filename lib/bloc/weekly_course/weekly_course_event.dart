@@ -5,6 +5,15 @@ abstract class WeeklyCourseEvent extends Equatable {
   const WeeklyCourseEvent();
 }
 
+/// 刷新
+class RefreshWeeklyCourses extends WeeklyCourseEvent {
+  final bool resetToCurrentWeek;
+  const RefreshWeeklyCourses({this.resetToCurrentWeek = false});
+
+  @override
+  List<Object?> get props => [];
+}
+
 /// 加载指定周的课程
 class LoadWeeklyCourses extends WeeklyCourseEvent {
   final int weekNumber;
@@ -39,13 +48,4 @@ class JumpToWeek extends WeeklyCourseEvent {
 
   @override
   List<Object?> get props => [weekNumber];
-}
-
-/// 刷新当前周课程
-class RefreshWeeklyCourses extends WeeklyCourseEvent {
-  final bool resetToCurrentWeek;
-  const RefreshWeeklyCourses({this.resetToCurrentWeek = false});
-
-  @override
-  List<Object?> get props => [];
 }

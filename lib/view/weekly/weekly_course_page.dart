@@ -1,12 +1,12 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:schedu/bloc/settings/settings_bloc.dart';
-import 'package:schedu/bloc/settings/settings_state.dart';
-import 'package:schedu/model/course.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_bloc.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_state.dart';
+import 'package:schedu/model/app_settings.dart';
+import 'package:schedu/model/course.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/style/colors.dart';
 import 'package:schedu/view/weekly/weekly_schedule_utils.dart';
@@ -45,126 +45,114 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SettingsBloc, SettingsState>(
-      listenWhen: (previous, current) => previous.startSemesterDate != current.startSemesterDate,
-      listener: (context, settingsState) {
-        // 设置更改时刷新当前周课程
-        context.read<WeeklyCourseBloc>().add(const RefreshWeeklyCourses(resetToCurrentWeek: true));
-      },
-      child: BlocBuilder<WeeklyCourseBloc, WeeklyCourseState>(
-        builder: (context, weeklyState) {
-          if (weeklyState is WeeklyCourseLoading) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          } else if (weeklyState is WeeklyCourseError) {
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text('周课程表'),
-              ),
-              body: _buildErrorState(context, weeklyState.message),
-            );
-          } else if (weeklyState is! WeeklyCourseLoaded) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          final state = weeklyState;
-          return BlocBuilder<SettingsBloc, SettingsState>(
-            builder: (context, settingsState) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('周课程表'),
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  elevation: 0,
-                  actions: [
-                    IconButton(
-                      onPressed: state.currentWeek > 1
-                          ? () => context.read<WeeklyCourseBloc>().add(const GoToPreviousWeek())
-                          : null,
-                      icon: const Icon(Icons.chevron_left),
-                      tooltip: '上一周',
-                    ),
-                    IconButton(
-                      onPressed: state.currentWeek < settingsState.totalWeeks
-                          ? () => context.read<WeeklyCourseBloc>().add(const GoToNextWeek())
-                          : null,
-                      icon: const Icon(Icons.chevron_right),
-                      tooltip: '下一周',
-                    ),
-                  ],
-                ),
-                body: Column(
-                  children: [
-                    // 周次显示
-                    GestureDetector(
-                      onTap: () => _showWeekSelector(
-                          context,
-                          currentWeek: state.currentWeek,
-                          totalWeeks: settingsState.totalWeeks,
-                          startSemesterDate: settingsState.startSemesterDate
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Theme.of(context).colorScheme.outline,
-                              width: 0.5,
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '第 ${state.currentWeek} 周 ${_getWeekDateRange(state.weekStart)}',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.arrow_drop_down,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // 周视图主体
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          if (state.courses.isEmpty) {
-                            return _buildEmptyState(context);
-                          }
-                          return _buildWeeklySchedule(
-                            context,
-                            state.courses,
-                            settingsState,
-                            state.weekStart,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
+    return BlocBuilder<WeeklyCourseBloc, WeeklyCourseState>(
+      builder: (context, state) {
+        if (state is WeeklyCourseLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
-        },
-      ),
+        } else if (state is WeeklyCourseError) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('周课程表'),
+            ),
+            body: _buildErrorState(context, state.message),
+          );
+        } else if (state is! WeeklyCourseLoaded) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('周课程表'),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            elevation: 0,
+            actions: [
+              IconButton(
+                onPressed: state.currentWeek > 1
+                    ? () => context.read<WeeklyCourseBloc>().add(const GoToPreviousWeek())
+                    : null,
+                icon: const Icon(Icons.chevron_left),
+                tooltip: '上一周',
+              ),
+              IconButton(
+                onPressed: state.currentWeek < state.settings.totalWeeks
+                    ? () => context.read<WeeklyCourseBloc>().add(const GoToNextWeek())
+                    : null,
+                icon: const Icon(Icons.chevron_right),
+                tooltip: '下一周',
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              // 周次显示
+              GestureDetector(
+                onTap: () => _showWeekSelector(
+                    context,
+                    currentWeek: state.currentWeek,
+                    totalWeeks: state.settings.totalWeeks,
+                    startSemesterDate: DateTime.fromMillisecondsSinceEpoch(state.settings.startSemester)
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '第 ${state.currentWeek} 周 ${_getWeekDateRange(state.weekStart)}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // 周视图主体
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    if (state.courses.isEmpty) {
+                      return _buildEmptyState(context);
+                    }
+                    return _buildWeeklySchedule(
+                      context,
+                      state.courses,
+                      state.settings,
+                      state.weekStart,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   /// 根据课程与当前设置构建整个周视图
-  Widget _buildWeeklySchedule(BuildContext context, List<Course> courses, SettingsState settings, DateTime weekStart) {
+  Widget _buildWeeklySchedule(BuildContext context, List<Course> courses, AppSettings settings, DateTime weekStart) {
     final displayDays = WeeklyScheduleUtils.getDisplayWeekdays(settings.showWeekend);
     final dayCount = displayDays.length;
 
@@ -173,7 +161,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
       coursesByDay[i] = courses.where((c) => c.day == i).toList();
     }
 
-    const sectionColumnWidth = 48.0; // 调小节次列宽度
+    const sectionColumnWidth = 48.0;
     const minDayColumnWidth = 68.0;
     const maxDayColumnWidth = 108.0;
     const sectionCellHeight = 64.0;
@@ -293,7 +281,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 构建表格内容区域
-  Widget _buildTableContent(BuildContext context, Map<int, List<Course>> coursesByDay, int dayCount, SettingsState settings, double sectionWidth, double dayWidth, double sectionHeight, double breakHeight) {
+  Widget _buildTableContent(BuildContext context, Map<int, List<Course>> coursesByDay, int dayCount, AppSettings settings, double sectionWidth, double dayWidth, double sectionHeight, double breakHeight) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -306,7 +294,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 构建节次列
-  Widget _buildSectionColumn(BuildContext context, SettingsState settings, double sectionWidth, double sectionHeight, double breakHeight) {
+  Widget _buildSectionColumn(BuildContext context, AppSettings settings, double sectionWidth, double sectionHeight, double breakHeight) {
     final List<Widget> children = [];
     for (int section = 1; section <= settings.maxSections; section++) {
       if (WeeklyScheduleUtils.shouldShowBreakRow(section, settings.morningSections, settings.afternoonSections)) {
@@ -319,7 +307,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 构建单日列
-  Widget _buildDayColumn(BuildContext context, int day, List<Course> courses, SettingsState settings, double dayWidth, double sectionHeight, double breakHeight) {
+  Widget _buildDayColumn(BuildContext context, int day, List<Course> courses, AppSettings settings, double dayWidth, double sectionHeight, double breakHeight) {
     final List<Widget> children = [];
     int section = 1;
     while (section <= settings.maxSections) {
@@ -371,7 +359,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
           ),
           padding: const EdgeInsets.all(2),
           child: GestureDetector(
-            onTap: () => _showCourseDetail(context, course),
+            onTap: () => _showCourseDetail(context, course, settings),
             child: _buildCourseCell(context, course),
           ),
         ));
@@ -620,6 +608,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
       required int totalWeeks,
       DateTime? startSemesterDate,
   }) {
+    final bloc = context.read<WeeklyCourseBloc>();
     final actualCurrentWeek = WeeklyScheduleUtils.calculateCurrentWeek(startSemesterDate ?? DateTime.now());
     showModalBottomSheet(
       context: context,
@@ -709,7 +698,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
 
                     return GestureDetector(
                       onTap: () {
-                        context.read<WeeklyCourseBloc>().add(JumpToWeek(week));
+                        bloc.add(JumpToWeek(week));
                         Navigator.of(context).pop();
                       },
                       child: Container(
@@ -741,7 +730,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 显示课程详情底部弹窗，展示课程详细信息
-  void _showCourseDetail(BuildContext context, Course course) {
+  void _showCourseDetail(BuildContext context, Course course, AppSettings settings) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -799,7 +788,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                 child: SingleChildScrollView(
                   controller: scrollController,
                   padding: const EdgeInsets.all(16),
-                  child: _buildCourseDetailContent(context, course),
+                  child: _buildCourseDetailContent(context, course, settings),
                 ),
               ),
             ],
@@ -810,7 +799,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 构建课程详情面板内容
-  Widget _buildCourseDetailContent(BuildContext context, Course course) {
+  Widget _buildCourseDetailContent(BuildContext context, Course course, AppSettings settings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -898,7 +887,8 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                 ),
                 const SizedBox(height: 12),
                 ...course.sections.map((section) {
-                  final timeText = _getSectionTimeText(context, section);
+                  final sectionTime = settings.sectionTimes[section-1];
+                  final timeText = '${sectionTime.startTime}-${sectionTime.endTime}';
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Row(
@@ -999,19 +989,6 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
         ],
       ),
     );
-  }
-
-  String _getSectionTimeText(BuildContext context, int section) {
-    final settingsState = context.read<SettingsBloc>().state;
-    final sectionTime = settingsState.sectionTimes.firstWhere(
-      (st) => st.section == section,
-      orElse: () => SectionTime(section: section, startTime: '', endTime: ''),
-    );
-    
-    if (sectionTime.startTime.isEmpty || sectionTime.endTime.isEmpty) {
-      return '';
-    }
-    return '${sectionTime.startTime}-${sectionTime.endTime}';
   }
 
   int _courseIdentityHash(Course course) {

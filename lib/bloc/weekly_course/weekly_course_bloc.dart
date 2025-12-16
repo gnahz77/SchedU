@@ -1,36 +1,58 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_state.dart';
-import 'package:schedu/model/course.dart';
+import 'package:schedu/repository/app_settings_store.dart';
 import 'package:schedu/repository/course_repository.dart';
-import 'package:schedu/repository/settings_manager.dart';
 import 'package:schedu/view/weekly/weekly_schedule_utils.dart';
 
 /// 周课程业务逻辑处理
 class WeeklyCourseBloc extends Bloc<WeeklyCourseEvent, WeeklyCourseState> {
   final CourseRepository _courseRepository;
-  final SettingsManager _settingsManager;
+  final AppSettingsStore _settingsDataStore;
 
-  WeeklyCourseBloc(this._courseRepository, this._settingsManager)
+  late final StreamSubscription _courseSub;
+  late final StreamSubscription _settingsSub;
+
+  WeeklyCourseBloc(this._courseRepository, this._settingsDataStore)
       : super(WeeklyCourseInitial()) {
-    on<LoadWeeklyCourses>(_onLoadWeeklyCourses);
+    on<RefreshWeeklyCourses>(_onRefreshWeeklyCourses);
     on<GoToPreviousWeek>(_onGoToPreviousWeek);
     on<GoToNextWeek>(_onGoToNextWeek);
     on<JumpToWeek>(_onJumpToWeek);
-    on<RefreshWeeklyCourses>(_onRefreshWeeklyCourses);
+
+    _courseSub = _courseRepository.stream.listen((_) {
+      add(const RefreshWeeklyCourses());
+    });
+    _settingsSub = _settingsDataStore.stream.listen((_) {
+      add(const RefreshWeeklyCourses(resetToCurrentWeek: true));
+    });
   }
 
-  /// 处理加载周课程事件
-  Future<void> _onLoadWeeklyCourses(
-    LoadWeeklyCourses event,
-    Emitter<WeeklyCourseState> emit,
+  @override
+  Future<void> close() {
+    _courseSub.cancel();
+    _settingsSub.cancel();
+    return super.close();
+  }
+
+  /// 处理刷新周课程事件
+  Future<void> _onRefreshWeeklyCourses(
+      RefreshWeeklyCourses event,
+      Emitter<WeeklyCourseState> emit,
   ) async {
-    try {
-      emit(WeeklyCourseLoading());
-      await _loadAndEmitCourses(event.weekNumber, emit);
-    } catch (e) {
-      emit(WeeklyCourseError('加载周课程失败: ${e.toString()}'));
+    final int currentWeek;
+    if (event.resetToCurrentWeek || state is! WeeklyCourseLoaded) {
+      final startSemester = _settingsDataStore.data.startSemester == -1
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(_settingsDataStore.data.startSemester);
+      currentWeek = WeeklyScheduleUtils.calculateCurrentWeek(startSemester);
+    } else {
+      final currentState = state as WeeklyCourseLoaded;
+      currentWeek = currentState.currentWeek;
     }
+    await _loadAndEmitCourses(currentWeek, emit);
   }
 
   /// 处理上一周事件
@@ -77,59 +99,20 @@ class WeeklyCourseBloc extends Bloc<WeeklyCourseEvent, WeeklyCourseState> {
     }
   }
 
-  /// 处理刷新周课程事件
-  Future<void> _onRefreshWeeklyCourses(
-    RefreshWeeklyCourses event,
-    Emitter<WeeklyCourseState> emit,
-  ) async {
-    if (event.resetToCurrentWeek || state is! WeeklyCourseLoaded) {
-      // 加载当前周
-      final startSemester = await _settingsManager.getStartSemesterDate();
-      final currentWeek = WeeklyScheduleUtils.calculateCurrentWeek(startSemester);
-      add(LoadWeeklyCourses(currentWeek));
-      return;
-    }
-    
-    final currentState = state as WeeklyCourseLoaded;
-    try {
-      await _loadAndEmitCourses(currentState.currentWeek, emit);
-    } catch (e) {
-      emit(WeeklyCourseError('刷新周课程失败: ${e.toString()}'));
-    }
-  }
-
   /// 加载并发送课程数据
   Future<void> _loadAndEmitCourses(int weekNumber, Emitter<WeeklyCourseState> emit) async {
-    // 获取设置
-    final startSemester = await _settingsManager.getStartSemesterDate();
-    final totalWeeks = await _settingsManager.getTotalWeeks();
-    final showWeekend = await _settingsManager.getShowWeekend();
-    
+    final startSemester = DateTime.fromMillisecondsSinceEpoch(_settingsDataStore.data.startSemester);
     // 获取周起始日期
     final weekStart = _getWeekStart(weekNumber, startSemester);
-
-    // 获取所有课程
-    final allCourses = await _courseRepository.getAllCourses();
-
     // 过滤当前周的课程
-    final weeklyCourses = _filterWeeklyCourses(allCourses, weekNumber);
-    
-    // 计算真实的当前周
-    final actualCurrentWeek = WeeklyScheduleUtils.calculateCurrentWeek(startSemester);
+    final weeklyCourses = await _courseRepository.getCoursesForWeek(weekNumber);
 
     emit(WeeklyCourseLoaded(
       currentWeek: weekNumber,
       weekStart: weekStart,
       courses: weeklyCourses,
-      showWeekend: showWeekend,
+      settings: _settingsDataStore.data,
     ));
-  }
-
-  /// 过滤指定周的课程
-  List<Course> _filterWeeklyCourses(List<Course> allCourses, int weekNumber) {
-    return allCourses.where((course) {
-      return course.weeks.contains(weekNumber);
-    }).toList();
   }
 
   /// 获取指定周号对应的周起始日期

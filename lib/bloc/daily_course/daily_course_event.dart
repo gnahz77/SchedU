@@ -5,15 +5,7 @@ abstract class DailyCourseEvent extends Equatable {
   const DailyCourseEvent();
 }
 
-/// 加载今日和明日课程
-class LoadDailyCourses extends DailyCourseEvent {
-  const LoadDailyCourses();
-
-  @override
-  List<Object?> get props => [];
-}
-
-/// 刷新今日课程（如从后台返回）
+/// 刷新今日和明日课程
 class RefreshDailyCourses extends DailyCourseEvent {
   const RefreshDailyCourses();
 

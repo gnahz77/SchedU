@@ -56,13 +56,13 @@ class DailyCourseWidget : GlanceAppWidget() {
 
         provideContent {
             GlanceTheme {
-                WidgetContent(displayData, repository)
+                WidgetContent(displayData)
             }
         }
     }
 
     @Composable
-    private fun WidgetContent(data: WidgetDisplayData, repository: CourseRepository) {
+    private fun WidgetContent(data: WidgetDisplayData) {
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -78,13 +78,13 @@ class DailyCourseWidget : GlanceAppWidget() {
 
             // 课程列表
             if (data.todayCourses.isEmpty()) {
-                EmptyState(data.tomorrowCourses, data.sectionTimes, repository)
+                EmptyState(data.tomorrowCourses, data.sectionTimes)
             } else if (data.allFinished) {
                 // 今日课程全部结束，显示今日课程和明日预告
-                FinishedState(data.todayCourses, data.tomorrowCourses, data.sectionTimes, repository)
+                FinishedState(data.todayCourses, data.tomorrowCourses, data.sectionTimes)
             } else {
                 // 显示今日课程列表
-                CourseList(data.todayCourses, data.sectionTimes, repository)
+                CourseList(data.todayCourses, data.sectionTimes)
             }
         }
     }
@@ -138,11 +138,10 @@ class DailyCourseWidget : GlanceAppWidget() {
     private fun CourseList(
         courses: List<CourseWithStatus>,
         sectionTimes: List<SectionTime>,
-        repository: CourseRepository
     ) {
         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
             items(courses) { courseWithStatus ->
-                CourseCard(courseWithStatus, sectionTimes, repository)
+                CourseCard(courseWithStatus, sectionTimes)
                 Spacer(modifier = GlanceModifier.height(8.dp))
             }
         }
@@ -152,11 +151,10 @@ class DailyCourseWidget : GlanceAppWidget() {
     private fun CourseCard(
         courseWithStatus: CourseWithStatus,
         sectionTimes: List<SectionTime>,
-        repository: CourseRepository
     ) {
         val course = courseWithStatus.course
         val status = courseWithStatus.status
-        val timeText = repository.getCourseTimeText(course, sectionTimes)
+        val timeText = getCourseTimeText(course, sectionTimes)
 
         val cardBackground = when (status) {
             CourseStatus.FINISHED -> WidgetColors.finishedBackground
@@ -301,7 +299,6 @@ class DailyCourseWidget : GlanceAppWidget() {
     private fun EmptyState(
         tomorrowCourses: List<CourseWithStatus>,
         sectionTimes: List<SectionTime>,
-        repository: CourseRepository
     ) {
         Column(
             modifier = GlanceModifier.fillMaxSize(),
@@ -338,7 +335,7 @@ class DailyCourseWidget : GlanceAppWidget() {
             
             // 明日课程预告
             if (tomorrowCourses.isNotEmpty()) {
-                TomorrowPreview(tomorrowCourses, sectionTimes, repository)
+                TomorrowPreview(tomorrowCourses, sectionTimes)
             }
         }
     }
@@ -348,17 +345,16 @@ class DailyCourseWidget : GlanceAppWidget() {
         todayCourses: List<CourseWithStatus>,
         tomorrowCourses: List<CourseWithStatus>,
         sectionTimes: List<SectionTime>,
-        repository: CourseRepository
     ) {
         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
             items(todayCourses) { courseWithStatus ->
-                CourseCard(courseWithStatus, sectionTimes, repository)
+                CourseCard(courseWithStatus, sectionTimes)
                 Spacer(modifier = GlanceModifier.height(8.dp))
             }
             
             item {
                 Spacer(modifier = GlanceModifier.height(8.dp))
-                TomorrowPreview(tomorrowCourses, sectionTimes, repository)
+                TomorrowPreview(tomorrowCourses, sectionTimes)
             }
         }
     }
@@ -367,7 +363,6 @@ class DailyCourseWidget : GlanceAppWidget() {
     private fun TomorrowPreview(
         tomorrowCourses: List<CourseWithStatus>,
         sectionTimes: List<SectionTime>,
-        repository: CourseRepository
     ) {
         Box(
             modifier = GlanceModifier
@@ -398,7 +393,7 @@ class DailyCourseWidget : GlanceAppWidget() {
                     )
                 } else {
                     tomorrowCourses.take(3).forEach { courseWithStatus ->
-                        TomorrowCourseRow(courseWithStatus.course, sectionTimes, repository)
+                        TomorrowCourseRow(courseWithStatus.course, sectionTimes)
                         Spacer(modifier = GlanceModifier.height(6.dp))
                     }
                     if (tomorrowCourses.size > 3) {
@@ -419,9 +414,8 @@ class DailyCourseWidget : GlanceAppWidget() {
     private fun TomorrowCourseRow(
         course: Course,
         sectionTimes: List<SectionTime>,
-        repository: CourseRepository
     ) {
-        val timeText = repository.getCourseTimeText(course, sectionTimes)
+        val timeText = getCourseTimeText(course, sectionTimes)
         
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
@@ -464,6 +458,27 @@ class DailyCourseWidget : GlanceAppWidget() {
                     maxLines = 1
                 )
             }
+        }
+    }
+
+    /**
+     * 获取课程时间文本
+     */
+    fun getCourseTimeText(course: Course, sectionTimes: List<SectionTime>): String {
+        if (course.sections.isEmpty() || sectionTimes.isEmpty()) {
+            return course.timeText
+        }
+
+        val startSection = course.sections.first()
+        val endSection = course.sections.last()
+
+        val startTime = sectionTimes.find { it.section == startSection }?.startTime
+        val endTime = sectionTimes.find { it.section == endSection }?.endTime
+
+        return if (startTime != null && endTime != null) {
+            "$startTime-$endTime"
+        } else {
+            course.timeText
         }
     }
 }

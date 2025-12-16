@@ -1,28 +1,25 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:schedu/model/section_time.dart';
+import 'package:schedu/service/course_import_service.dart';
 
 abstract class SettingsEvent extends Equatable {
   const SettingsEvent();
-
   @override
   List<Object?> get props => [];
 }
 
-class LoadSettings extends SettingsEvent {}
+class RefreshSettings extends SettingsEvent {
+  const RefreshSettings();
+  @override
+  List<Object?> get props => [];
+}
 
 class UpdateTotalWeeks extends SettingsEvent {
   final int totalWeeks;
   const UpdateTotalWeeks(this.totalWeeks);
   @override
   List<Object?> get props => [totalWeeks];
-}
-
-class UpdateMaxSections extends SettingsEvent {
-  final int maxSections;
-  const UpdateMaxSections(this.maxSections);
-  @override
-  List<Object?> get props => [maxSections];
 }
 
 class UpdateThemeMode extends SettingsEvent {
@@ -62,9 +59,18 @@ class UpdateStartSemesterDate extends SettingsEvent {
   List<Object?> get props => [date];
 }
 
-class ImportScheduleConfig extends SettingsEvent {
-  final ScheduleConfig config;
-  const ImportScheduleConfig(this.config);
+class ImportCourseTimes extends SettingsEvent {
+  final ImportData importData;
+
+  const ImportCourseTimes(this.importData);
+
   @override
-  List<Object?> get props => [config];
+  List<Object?> get props => [importData];
+}
+
+class ExportCourseTimes extends SettingsEvent {
+  const ExportCourseTimes();
+
+  @override
+  List<Object?> get props => [];
 }

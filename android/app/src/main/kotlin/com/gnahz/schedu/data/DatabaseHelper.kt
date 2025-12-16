@@ -15,7 +15,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
 ) {
     companion object {
         private const val DATABASE_NAME = "schedu.db"
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 3
 
         const val TABLE_COURSES = "courses"
 
@@ -28,6 +28,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val COLUMN_DAY = "day"
         const val COLUMN_SECTIONS = "sections"
         const val COLUMN_COLOR_ID = "color_id"
+        const val COLUMN_WEEKS_MASK = "weeks_mask"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -41,7 +42,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
                 $COLUMN_WEEKS TEXT NOT NULL,
                 $COLUMN_DAY INTEGER NOT NULL,
                 $COLUMN_SECTIONS TEXT NOT NULL,
-                $COLUMN_COLOR_ID INTEGER
+                $COLUMN_COLOR_ID INTEGER,
+                $COLUMN_WEEKS_MASK INTEGER DEFAULT 0
             )
         """)
     }
@@ -50,5 +52,48 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE $TABLE_COURSES ADD COLUMN $COLUMN_COLOR_ID INTEGER")
         }
+        if (oldVersion < 3) {
+            // 添加 weeks_mask 列以支持高效的 SQL 位掩码筛选
+            db.execSQL("ALTER TABLE $TABLE_COURSES ADD COLUMN $COLUMN_WEEKS_MASK INTEGER DEFAULT 0")
+
+            // 迁移现有数据：从周数 JSON 计算 mask
+            val cursor = db.query(
+                TABLE_COURSES,
+                arrayOf(COLUMN_ID, COLUMN_WEEKS),
+                null, null, null, null, null
+            )
+            cursor.use {
+                while (it.moveToNext()) {
+                    val id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID))
+                    val weeksJson = it.getString(it.getColumnIndexOrThrow(COLUMN_WEEKS))
+                    try {
+                        val weeks = com.google.gson.Gson().fromJson(
+                            weeksJson,
+                            object : com.google.gson.reflect.TypeToken<List<Int>>() {}.type
+                        ) as? List<Int> ?: emptyList()
+                        val mask = calculateWeeksMask(weeks)
+                        db.execSQL(
+                            "UPDATE $TABLE_COURSES SET $COLUMN_WEEKS_MASK = ? WHERE $COLUMN_ID = ?",
+                            arrayOf(mask, id)
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 计算周数掩码 (Bitmask)
+     */
+    private fun calculateWeeksMask(weeks: List<Int>): Long {
+        var mask = 0L
+        for (week in weeks) {
+            if (week >= 0 && week < 63) {
+                mask = mask or (1L shl week)
+            }
+        }
+        return mask
     }
 }

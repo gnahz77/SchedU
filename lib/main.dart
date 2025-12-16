@@ -5,17 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:schedu/bloc/settings/settings_bloc.dart';
-import 'package:schedu/bloc/settings/settings_event.dart';
-import 'package:schedu/bloc/settings/settings_state.dart';
-import 'package:schedu/bloc/course/course_bloc.dart';
 import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
 import 'package:schedu/bloc/daily_course/daily_course_event.dart';
+import 'package:schedu/bloc/settings/settings_bloc.dart';
+import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_bloc.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
 import 'package:schedu/gen/assets.gen.dart';
+import 'package:schedu/repository/app_settings_store.dart';
 import 'package:schedu/repository/course_repository.dart';
-import 'package:schedu/repository/settings_manager.dart';
 import 'package:schedu/style/theme.dart';
 import 'package:schedu/view/route_names.dart';
 import 'package:schedu/view/routes.dart';
@@ -63,37 +61,28 @@ class MyApp extends StatelessWidget {
       providers: [
         RepositoryProvider<CourseRepository>(
           create: (_) => CourseRepositoryImpl(),
+          dispose: (repository) {
+            repository.dispose();
+          },
         )
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (context) => SettingsBloc(SettingsManager.instance)..add(LoadSettings()),
-          ),
-          BlocProvider(
-            create: (context) => CourseBloc(context.read<CourseRepository>()),
-          ),
-          BlocProvider(
-            create: (context) => DailyCourseBloc(
+            create: (context) => SettingsBloc(
               context.read<CourseRepository>(),
-              SettingsManager.instance,
-            )..add(const LoadDailyCourses()),
-          ),
-          BlocProvider(
-            create: (context) => WeeklyCourseBloc(
-              context.read<CourseRepository>(),
-              SettingsManager.instance,
-            )..add(const RefreshWeeklyCourses()),
+              AppSettingsStore.instance,
+            ),
           ),
         ],
         child: BlocBuilder<SettingsBloc, SettingsState>(
-          buildWhen: (previous, current) => previous.themeMode != current.themeMode,
+          buildWhen: (previous, current) => previous.appSettings.themeMode != current.appSettings.themeMode,
           builder: (context, state) {
             return MaterialApp(
               title: 'SchedU',
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
-              themeMode: state.themeMode,
+              themeMode: state.appSettings.themeMode,
               locale: const Locale('zh', 'CN'),
               localizationsDelegates: const [
                 GlobalMaterialLocalizations.delegate,

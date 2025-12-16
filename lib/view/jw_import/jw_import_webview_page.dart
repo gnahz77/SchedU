@@ -91,12 +91,9 @@ class _JwImportWebviewPageState extends State<JwImportWebviewPage> {
       _showSnackBar(effect.message, isError: effect.isError);
     } else if (effect is ImportSuccessNavigateBack) {
       _showSnackBar('成功导入 ${effect.courseCount} 门课程', isError: false);
-      // 延迟返回，让用户看到成功消息
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          Navigator.pop(context, true); // 返回true表示导入成功
-        }
-      });
+      if (mounted) {
+        Navigator.pop(context, true); // 返回true表示导入成功
+      }
     } else if (effect is ShowImportConfirmDialog) {
       _showImportConfirmDialog(effect.courseCount);
     } else if (effect is HideImportConfirmDialog) {

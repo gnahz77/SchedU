@@ -201,7 +201,6 @@ class JwImportWebviewBloc extends Bloc<JwImportWebviewEvent, JwImportWebviewStat
       emit(state.copyWith(
         isParsing: false,
         parsedCourses: courses,
-        showImportConfirmDialog: true,
         clearParsingStatus: true,
         aiResponseLength: 0,
       ));
@@ -288,7 +287,6 @@ class JwImportWebviewBloc extends Bloc<JwImportWebviewEvent, JwImportWebviewStat
       emit(state.copyWith(
         isParsing: false,
         parsedCourses: courses,
-        showImportConfirmDialog: true,
         clearParsingStatus: true,
         aiResponseLength: 0,
       ));
@@ -409,7 +407,6 @@ class JwImportWebviewBloc extends Bloc<JwImportWebviewEvent, JwImportWebviewStat
 
     emit(state.copyWith(
       isImporting: true,
-      showImportConfirmDialog: false,
     ));
 
     try {
@@ -436,7 +433,6 @@ class JwImportWebviewBloc extends Bloc<JwImportWebviewEvent, JwImportWebviewStat
     Emitter<JwImportWebviewState> emit,
   ) {
     emit(state.copyWith(
-      showImportConfirmDialog: false,
       clearParsedCourses: true,
     ));
     _emitSideEffect(const HideImportConfirmDialog());
