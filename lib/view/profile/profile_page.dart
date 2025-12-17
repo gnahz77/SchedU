@@ -928,12 +928,23 @@ class _StartSemesterSettingItem extends StatelessWidget {
 
   Future<void> _pickStartDate(BuildContext context) async {
     final now = DateTime.now();
-    final initialDate = startDate ?? now;
+
+    DateTime initialDate = startDate ?? now;
+
+    final firstDate = DateTime(now.year - 5);
+    final lastDate = DateTime(now.year + 5, 12, 31);
+
+    if (initialDate.isBefore(firstDate)) {
+        initialDate = firstDate;
+    } else if (initialDate.isAfter(lastDate)) {
+        initialDate = lastDate;
+    }
+
     final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(now.year - 5),
-      lastDate: DateTime(now.year + 5, 12, 31),
+        context: context,
+        initialDate: initialDate,
+        firstDate: firstDate,
+        lastDate: lastDate,
     );
 
     if (pickedDate == null) return;
