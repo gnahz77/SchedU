@@ -4,6 +4,8 @@ SchedU是一个Flutter编写的多平台课程表，采用Material 3风格设计
 
 ### [安装包下载](../../releases)
 
+![Preview](photos/preview.jpg)
+
 ### 目录
 - **[效果图](#效果图)**
 - **[功能列表](#功能列表)**
@@ -13,6 +15,7 @@ SchedU是一个Flutter编写的多平台课程表，采用Material 3风格设计
 - **[本地化](#本地化)**
 - **[FlutterWebView 实现说明](#flutterwebview-实现说明)**
 - **[特别鸣谢](#特别鸣谢)**
+- **[许可证](#许可证)**
 
 ## 效果图
 详见[效果图](photos/README.md)
@@ -26,8 +29,8 @@ SchedU是一个Flutter编写的多平台课程表，采用Material 3风格设计
 * 课程管理 **（开发中）**
 * JSON格式的课程导入/导出
 * 从教务系统导入课程（AI模式和JavaScript模式）
-* 主题切换（浅色/深色/系统）
 * 基于OCR+AI的图片导入课程 **（开发中）**
+* 主题切换（浅色/深色/系统）
 
 ## 关于AI导入功能
 
@@ -93,3 +96,8 @@ SchedU集成了[openai_dart](https://pub.dev/packages/openai_dart)，支持调�
 [json_serializable](https://pub.dev/packages/json_serializable)、
 [flutter_gen_runner](https://pub.dev/packages/flutter_gen_runner)、
 [gson](https://github.com/google/gson)
+
+# 许可证
+本项目采用 MIT 许可证，详见 [LICENSE](LICENSE)
+
+Copyright (c) 2025 gnahz77
