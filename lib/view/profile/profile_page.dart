@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:schedu/bloc/settings/settings_bloc.dart';
 import 'package:schedu/bloc/settings/settings_event.dart';
 import 'package:schedu/bloc/settings/settings_state.dart';
@@ -28,17 +29,27 @@ class _ProfilePageState extends State<ProfilePage> {
   static const MethodChannel _widgetChannel = MethodChannel('com.gnahz.schedu/main');
 
   StreamSubscription<SettingsSideEffectEvent>? _sideEffectSub;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _sideEffectSub = context.read<SettingsBloc>().sideEffect.listen(_handleSideEffect);
+    _loadAppVersion();
   }
 
   @override
   void dispose() {
     _sideEffectSub?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() {
+      _appVersion = info.version;
+    });
   }
 
   void _handleSideEffect(SettingsSideEffectEvent event) {
@@ -275,7 +286,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 context,
                 icon: Icons.info_outline,
                 title: '关于应用',
-                subtitle: '版本 1.0.0',
+                subtitle: '版本 $_appVersion',
                 onTap: () => _showAboutDialog(context),
               ),
               const SizedBox(height: 32),
@@ -794,7 +805,7 @@ class _ProfilePageState extends State<ProfilePage> {
     showAboutDialog(
       context: context,
       applicationName: 'SchedU',
-      applicationVersion: '1.0.0',
+      applicationVersion: _appVersion.isEmpty ? null : _appVersion,
       applicationIcon: SvgPicture.asset(
         Assets.images.scheduIcon,
         width: 48,

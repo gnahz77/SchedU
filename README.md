@@ -90,12 +90,13 @@ SchedU集成了[openai_dart](https://pub.dev/packages/openai_dart)，支持调�
 [equatable](https://pub.dev/packages/equatable)、
 [path](https://pub.dev/packages/path)、
 [cupertino_icons](https://pub.dev/packages/cupertino_icons)、
-[file_picker](https://pub.dev/packages/file_picker)
+[file_picker](https://pub.dev/packages/file_picker)、
 [openai_dart](https://pub.dev/packages/openai_dart)、
-[build_runner](https://pub.dev/packages/build_runner)
+[build_runner](https://pub.dev/packages/build_runner)、
 [json_serializable](https://pub.dev/packages/json_serializable)、
 [flutter_gen_runner](https://pub.dev/packages/flutter_gen_runner)、
-[gson](https://github.com/google/gson)
+[gson](https://github.com/google/gson)、
+[package_info_plus](https://pub.dev/packages/package_info_plus)
 
 # 许可证
 本项目采用 MIT 许可证，详见 [LICENSE](LICENSE)
