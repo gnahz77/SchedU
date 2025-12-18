@@ -164,7 +164,9 @@ class _AiServiceConfigContentState extends State<_AiServiceConfigContent> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '系统免费解析服务可能速度较慢且不稳定，建议使用其他AI服务以获得更好体验。\n\n推荐使用: ChatGPT、Grok、DeepSeek、Qwen等高性价比模型',
+                        '注意：使用AI导入功能会把导入时打开的页面HTML内容发送到第三方AI服务进行解析，继续则代表您已同意此操作。'
+                        '\n\n系统免费解析服务可能速度较慢且不稳定，建议使用其他AI服务以获得更好体验。'
+                        '\n\n推荐使用: ChatGPT、Grok、DeepSeek、Qwen等高性价比模型',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
