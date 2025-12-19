@@ -11,7 +11,8 @@ import 'jw_import_config_state.dart';
 import 'jw_import_config_side_effect.dart';
 
 /// 测试服务的提示词
-const String defaultTestPrompt = "This is a test message. Just reply ‘ok’—no need to explain.";
+const String defaultTestSystemPrompt = "This is a test message. Just reply ‘ok’—no need to explain.";
+const String defaultTestUserPrompt = "All you have to do is reply ok";
 
 /// JW导入配置BLoC
 class JwImportConfigBloc
@@ -390,7 +391,13 @@ class JwImportConfigBloc
       await aiService.chat(
         request: AIChatRequest(
           model: currentState.aiModel,
-          systemPrompt: defaultTestPrompt,
+          systemPrompt: defaultTestSystemPrompt,
+          messages: [
+            AIChatMessage(
+              role: AIChatRole.user,
+              content: defaultTestUserPrompt,
+            )
+          ]
         ),
       );
 

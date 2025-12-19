@@ -61,7 +61,7 @@
   },
   {
     "name": "智普清言",
-    "baseUrl": "https://open.bigmodel.cn/api/paas/v4/",
+    "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
     "defaultModel": "glm-4.5",
     "icon": "GLM.png"
   }
