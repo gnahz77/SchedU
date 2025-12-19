@@ -60,6 +60,12 @@
     "icon": "Grok.png"
   },
   {
+    "name": "Xiaomi MiMo",
+    "baseUrl": "https://api.xiaomimimo.com/v1",
+    "defaultModel": "mimo-v2-flash",
+    "icon": "MiMo.jpg"
+  },
+  {
     "name": "智普清言",
     "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
     "defaultModel": "glm-4.5",
