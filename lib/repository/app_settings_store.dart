@@ -49,7 +49,7 @@ class AppSettingsStore {
                 .map((item) => SectionTime.fromJson(item))
                 .toList()
             : AppSettings.defaultSectionTimes,
-        startSemester: prefs.getInt(_keyStartSemester) ?? -1,
+        startSemester: prefs.getInt(_keyStartSemester) ?? DateTime.now().millisecondsSinceEpoch,
         startWithSunday: prefs.getBool(_keyStartWithSunday) ?? false,
       );
       _streamController.add(_data);
