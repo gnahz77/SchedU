@@ -79,6 +79,7 @@ SchedU集成了[openai_dart](https://pub.dev/packages/openai_dart)，支持调�
 - [阿里云](https://www.aliyun.com/)
 - [火山引擎](https://www.volcengine.com/)
 - [腾讯云](https://cloud.tencent.com/)
+- [小米Mimo](https://platform.xiaomimimo.com/)
 
 **感谢以下开源项目和库：**
 [flutter_bloc](https://pub.dev/packages/flutter_bloc)、
