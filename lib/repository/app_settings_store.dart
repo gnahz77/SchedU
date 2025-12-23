@@ -17,6 +17,7 @@ class AppSettingsStore {
   static const String _keySectionTimes = 'section_times';
   static const String _keyStartSemester = 'start_semester';
   static const String _keyStartWithSunday = 'start_with_sunday';
+  static const String _keyAdaptiveWidth = 'adaptive_width';
 
   static AppSettingsStore? _instance;
   static AppSettingsStore get instance => _instance ??= AppSettingsStore._();
@@ -40,7 +41,7 @@ class AppSettingsStore {
           (mode) => mode.name == prefs.getString(_keyThemeMode),
           orElse: () => ThemeMode.system,
         ),
-        showWeekend: prefs.getBool(_keyShowWeekend) ?? false,
+        showWeekend: prefs.getBool(_keyShowWeekend) ?? true,
         morningSections: prefs.getInt(_keyMorningSections) ?? 4,
         afternoonSections: prefs.getInt(_keyAfternoonSections) ?? 4,
         eveningSections: prefs.getInt(_keyEveningSections) ?? 2,
@@ -51,6 +52,7 @@ class AppSettingsStore {
             : AppSettings.defaultSectionTimes,
         startSemester: prefs.getInt(_keyStartSemester) ?? DateTime.now().millisecondsSinceEpoch,
         startWithSunday: prefs.getBool(_keyStartWithSunday) ?? false,
+        adaptiveWidth: prefs.getBool(_keyAdaptiveWidth) ?? true,
       );
       _streamController.add(_data);
     });
@@ -150,6 +152,16 @@ class AppSettingsStore {
       await prefs.setBool(_keyStartWithSunday, startWithSunday);
       _data = _data.copyWith(
         startWithSunday: startWithSunday,
+      );
+    });
+  }
+
+  /// 设置课表宽度自适应
+  Future<void> setAdaptiveWidth(bool width) async {
+    await _update((prefs) async {
+      await prefs.setBool(_keyAdaptiveWidth, width);
+      _data = _data.copyWith(
+        adaptiveWidth: width,
       );
     });
   }

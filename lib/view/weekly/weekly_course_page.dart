@@ -168,6 +168,8 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     const breakCellHeight = 24.0;
     const headerHeight = 48.0;
 
+    final useAdaptiveWidth = settings.adaptiveWidth;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth.isFinite
@@ -176,23 +178,33 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
         // 计算可用宽度并确定每日列宽度
         final availableWidth = math.max(screenWidth - sectionColumnWidth, 0.0);
         final rawDayWidth = dayCount > 0 ? availableWidth / dayCount : minDayColumnWidth;
-        final dayColumnWidth = math.min(math.max(rawDayWidth, minDayColumnWidth), maxDayColumnWidth);
+        final dayColumnWidth = useAdaptiveWidth
+            ? rawDayWidth
+            : math.min(math.max(rawDayWidth, minDayColumnWidth), maxDayColumnWidth);
         final contentWidth = sectionColumnWidth + dayColumnWidth * dayCount;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: contentWidth,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildTableHeader(context, displayDays, weekStart, sectionColumnWidth, dayColumnWidth, headerHeight),
-                  _buildTableContent(context, coursesByDay, dayCount, settings, sectionColumnWidth, dayColumnWidth, sectionCellHeight, breakCellHeight),
-                ],
-              ),
-            ),
-          ),
+        final scheduleColumn = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTableHeader(context, displayDays, weekStart, sectionColumnWidth, dayColumnWidth, headerHeight),
+            _buildTableContent(context, coursesByDay, dayCount, settings, sectionColumnWidth, dayColumnWidth, sectionCellHeight, breakCellHeight),
+          ],
         );
+
+        final verticalScroll = SingleChildScrollView(child: scheduleColumn);
+
+        return useAdaptiveWidth
+            ? Container(
+                width: double.infinity,
+                child: verticalScroll,
+              )
+            : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: contentWidth,
+                  child: verticalScroll,
+                ),
+              );
       },
     );
   }

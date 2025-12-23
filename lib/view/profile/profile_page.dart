@@ -10,6 +10,7 @@ import 'package:schedu/bloc/settings/settings_bloc.dart';
 import 'package:schedu/bloc/settings/settings_event.dart';
 import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/gen/assets.gen.dart';
+import 'package:schedu/model/app_settings.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/service/course_import_service.dart';
 
@@ -180,13 +181,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 subtitle: '当前设置: ${settingsState.appSettings.totalWeeks}周',
                 onTap: () => _showTotalWeeksSettingDialog(context, settingsState.appSettings.totalWeeks),
               ),
-              // 周末显示设置
+              // 周课表展示设置（显示周末 + 宽度自适应）
               _buildSettingItem(
                 context,
-                icon: Icons.weekend_outlined,
-                title: '显示周末',
-                subtitle: settingsState.appSettings.showWeekend ? '已开启' : '已关闭',
-                onTap: () => _showWeekendSettingDialog(context, settingsState.appSettings.showWeekend),
+                icon: Icons.grid_view,
+                title: '周课表展示设置',
+                subtitle: _getWeeklyScheduleDisplaySubtitle(settingsState.appSettings),
+                onTap: () => _showWeeklyScheduleDisplayDialog(context, settingsState.appSettings),
               ),
               // 每日节数设置
               _buildSettingItem(
@@ -213,7 +214,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   settingsState.appSettings.totalDailySections,
                 ),
               ),
-
               const SizedBox(height: 24),
 
               // 数据管理分组
@@ -327,6 +327,8 @@ class _ProfilePageState extends State<ProfilePage> {
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: Icon(
           Icons.chevron_right,
@@ -386,55 +388,6 @@ class _ProfilePageState extends State<ProfilePage> {
             child: const Text('确定'),
           ),
         ],
-      ),
-    );
-  }
-
-  /// 显示周末设置对话框
-  void _showWeekendSettingDialog(BuildContext context, bool currentShowWeekend) {
-    bool showWeekend = currentShowWeekend;
-    
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('周末显示设置'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('是否在课程表中显示周末？'),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                title: const Text('显示周末'),
-                subtitle: const Text('关闭后课程表只显示周一到周五'),
-                value: showWeekend,
-                onChanged: (value) {
-                  setState(() {
-                    showWeekend = value;
-                  });
-                },
-              ),
-            ],          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                context.read<SettingsBloc>().add(UpdateShowWeekend(showWeekend));
-                Navigator.of(context).pop();
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(showWeekend ? '已开启周末显示' : '已关闭周末显示'),
-                  ),
-                );
-              },
-              child: const Text('确定'),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -570,6 +523,63 @@ class _ProfilePageState extends State<ProfilePage> {
         eveningSections: settingsState.appSettings.eveningSections,
         onParseTimeOfDay: _parseTimeOfDay,
         onFormatTimeOfDay: _formatTimeOfDay,
+      ),
+    );
+  }
+
+  String _getWeeklyScheduleDisplaySubtitle(AppSettings appSettings) {
+    final weekendText = appSettings.showWeekend ? '显示周末：已开启' : '显示周末：已关闭';
+    final widthText = appSettings.adaptiveWidth ? '宽度自适应：已开启' : '宽度自适应：已关闭';
+    return '$weekendText · $widthText';
+  }
+
+  void _showWeeklyScheduleDisplayDialog(BuildContext context, AppSettings appSettings) {
+    bool showWeekend = appSettings.showWeekend;
+    bool adaptiveWidth = appSettings.adaptiveWidth;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('周课表展示设置'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('显示周末'),
+                subtitle: const Text('在周视图中显示周六、周日'),
+                value: showWeekend,
+                onChanged: (value) => setState(() => showWeekend = value),
+              ),
+              SwitchListTile(
+                title: const Text('宽度自适应'),
+                subtitle: const Text('占满屏幕宽度，禁用横向滑动'),
+                value: adaptiveWidth,
+                onChanged: (value) => setState(() => adaptiveWidth = value),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final bloc = context.read<SettingsBloc>();
+                bloc.add(UpdateWeeklyScheduleDisplay(
+                  showWeekend: showWeekend,
+                  adaptiveWidth: adaptiveWidth,
+                ));
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('周课表展示设置已保存')),
+                );
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
       ),
     );
   }

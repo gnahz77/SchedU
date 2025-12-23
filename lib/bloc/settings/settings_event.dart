@@ -32,14 +32,6 @@ class UpdateThemeMode extends SettingsEvent {
   List<Object?> get props => [themeMode];
 }
 
-/// 更新是否显示周末
-class UpdateShowWeekend extends SettingsEvent {
-  final bool showWeekend;
-  const UpdateShowWeekend(this.showWeekend);
-  @override
-  List<Object?> get props => [showWeekend];
-}
-
 /// 更新每日节数设置
 class UpdateSectionConfig extends SettingsEvent {
   final int morning;
@@ -56,6 +48,21 @@ class UpdateSectionTimes extends SettingsEvent {
   const UpdateSectionTimes(this.sectionTimes);
   @override
   List<Object?> get props => [sectionTimes];
+}
+
+
+/// 更新周课表展示设置（显示周末 + 宽度自适应）
+class UpdateWeeklyScheduleDisplay extends SettingsEvent {
+  final bool showWeekend;
+  final bool adaptiveWidth;
+
+  const UpdateWeeklyScheduleDisplay({
+    required this.showWeekend,
+    required this.adaptiveWidth,
+  });
+
+  @override
+  List<Object?> get props => [showWeekend, adaptiveWidth];
 }
 
 /// 更新开学日期
