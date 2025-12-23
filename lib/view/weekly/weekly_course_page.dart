@@ -296,7 +296,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   /// 构建节次列
   Widget _buildSectionColumn(BuildContext context, AppSettings settings, double sectionWidth, double sectionHeight, double breakHeight) {
     final List<Widget> children = [];
-    for (int section = 1; section <= settings.maxSections; section++) {
+    for (int section = 1; section <= settings.totalDailySections; section++) {
       if (WeeklyScheduleUtils.shouldShowBreakRow(section, settings.morningSections, settings.afternoonSections)) {
         final breakName = WeeklyScheduleUtils.getBreakRowName(section, settings.morningSections, settings.afternoonSections);
         children.add(_buildSectionBreakCell(context, breakName, sectionWidth, breakHeight));
@@ -310,7 +310,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   Widget _buildDayColumn(BuildContext context, int day, List<Course> courses, AppSettings settings, double dayWidth, double sectionHeight, double breakHeight) {
     final List<Widget> children = [];
     int section = 1;
-    while (section <= settings.maxSections) {
+    while (section <= settings.totalDailySections) {
       if (WeeklyScheduleUtils.shouldShowBreakRow(section, settings.morningSections, settings.afternoonSections)) {
         children.add(_buildDayBreakCell(context, dayWidth, breakHeight));
       }
@@ -333,7 +333,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
         double height = sectionHeight;
 
         // 计算课程所占行高与跨越节数
-        while (nextSection <= settings.maxSections && course.sections.contains(nextSection)) {
+        while (nextSection <= settings.totalDailySections && course.sections.contains(nextSection)) {
           if (WeeklyScheduleUtils.shouldShowBreakRow(nextSection, settings.morningSections, settings.afternoonSections)) {
             height += breakHeight;
           }

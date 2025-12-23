@@ -5,8 +5,6 @@ import 'package:schedu/model/section_time.dart';
 class AppSettings extends Equatable {
   // 学期总周数
   final int totalWeeks;
-  // 每天最多节数
-  final int maxSections;
   // 主题模式
   final ThemeMode themeMode;
   // 是否显示周末
@@ -26,7 +24,6 @@ class AppSettings extends Equatable {
 
   const AppSettings({
     this.totalWeeks = 20,
-    this.maxSections = 12,
     this.themeMode = ThemeMode.system,
     this.showWeekend = true,
     this.morningSections = 4,
@@ -36,6 +33,10 @@ class AppSettings extends Equatable {
     this.startWithSunday = false,
     this.startSemester = -1,
   });
+
+  /// 每日总节数
+  int get totalDailySections =>
+      morningSections + afternoonSections + eveningSections;
 
   /// 默认节次列表（与原 `AppSettingsStore._getDefaultSectionTimesList()` 保持一致）
   static const List<SectionTime> defaultSectionTimes = [
@@ -59,7 +60,6 @@ class AppSettings extends Equatable {
 
   AppSettings copyWith({
     int? totalWeeks,
-    int? maxSections,
     ThemeMode? themeMode,
     bool? showWeekend,
     int? morningSections,
@@ -71,7 +71,6 @@ class AppSettings extends Equatable {
   }) {
     return AppSettings(
       totalWeeks: totalWeeks ?? this.totalWeeks,
-      maxSections: maxSections ?? this.maxSections,
       themeMode: themeMode ?? this.themeMode,
       showWeekend: showWeekend ?? this.showWeekend,
       morningSections: morningSections ?? this.morningSections,
@@ -86,7 +85,6 @@ class AppSettings extends Equatable {
   @override
   List<Object?> get props => [
     totalWeeks,
-    maxSections,
     themeMode,
     showWeekend,
     morningSections,

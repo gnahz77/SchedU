@@ -193,7 +193,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 context,
                 icon: Icons.format_list_numbered_outlined,
                 title: '每日节数',
-                subtitle: '当前设置: ${settingsState.appSettings.maxSections}节',
+                subtitle: '当前设置: ${settingsState.appSettings.totalDailySections}节',
                 onTap: () => _showTimePeriodSettingDialog(
                   context,
                   settingsState.appSettings.morningSections,
@@ -210,7 +210,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 onTap: () => _showSectionTimesSettingDialog(
                   context,
                   settingsState.appSettings.sectionTimes,
-                  settingsState.appSettings.maxSections,
+                  settingsState.appSettings.totalDailySections,
                 ),
               ),
 
