@@ -168,6 +168,8 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     const breakCellHeight = 24.0;
     const headerHeight = 48.0;
 
+    final useAdaptiveWidth = settings.adaptiveWidth;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth.isFinite
@@ -176,23 +178,33 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
         // 计算可用宽度并确定每日列宽度
         final availableWidth = math.max(screenWidth - sectionColumnWidth, 0.0);
         final rawDayWidth = dayCount > 0 ? availableWidth / dayCount : minDayColumnWidth;
-        final dayColumnWidth = math.min(math.max(rawDayWidth, minDayColumnWidth), maxDayColumnWidth);
+        final dayColumnWidth = useAdaptiveWidth
+            ? rawDayWidth
+            : math.min(math.max(rawDayWidth, minDayColumnWidth), maxDayColumnWidth);
         final contentWidth = sectionColumnWidth + dayColumnWidth * dayCount;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: contentWidth,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildTableHeader(context, displayDays, weekStart, sectionColumnWidth, dayColumnWidth, headerHeight),
-                  _buildTableContent(context, coursesByDay, dayCount, settings, sectionColumnWidth, dayColumnWidth, sectionCellHeight, breakCellHeight),
-                ],
-              ),
-            ),
-          ),
+        final scheduleColumn = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTableHeader(context, displayDays, weekStart, sectionColumnWidth, dayColumnWidth, headerHeight),
+            _buildTableContent(context, coursesByDay, dayCount, settings, sectionColumnWidth, dayColumnWidth, sectionCellHeight, breakCellHeight),
+          ],
         );
+
+        final verticalScroll = SingleChildScrollView(child: scheduleColumn);
+
+        return useAdaptiveWidth
+            ? Container(
+                width: double.infinity,
+                child: verticalScroll,
+              )
+            : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: contentWidth,
+                  child: verticalScroll,
+                ),
+              );
       },
     );
   }
@@ -296,7 +308,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   /// 构建节次列
   Widget _buildSectionColumn(BuildContext context, AppSettings settings, double sectionWidth, double sectionHeight, double breakHeight) {
     final List<Widget> children = [];
-    for (int section = 1; section <= settings.maxSections; section++) {
+    for (int section = 1; section <= settings.totalDailySections; section++) {
       if (WeeklyScheduleUtils.shouldShowBreakRow(section, settings.morningSections, settings.afternoonSections)) {
         final breakName = WeeklyScheduleUtils.getBreakRowName(section, settings.morningSections, settings.afternoonSections);
         children.add(_buildSectionBreakCell(context, breakName, sectionWidth, breakHeight));
@@ -310,7 +322,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   Widget _buildDayColumn(BuildContext context, int day, List<Course> courses, AppSettings settings, double dayWidth, double sectionHeight, double breakHeight) {
     final List<Widget> children = [];
     int section = 1;
-    while (section <= settings.maxSections) {
+    while (section <= settings.totalDailySections) {
       if (WeeklyScheduleUtils.shouldShowBreakRow(section, settings.morningSections, settings.afternoonSections)) {
         children.add(_buildDayBreakCell(context, dayWidth, breakHeight));
       }
@@ -333,7 +345,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
         double height = sectionHeight;
 
         // 计算课程所占行高与跨越节数
-        while (nextSection <= settings.maxSections && course.sections.contains(nextSection)) {
+        while (nextSection <= settings.totalDailySections && course.sections.contains(nextSection)) {
           if (WeeklyScheduleUtils.shouldShowBreakRow(nextSection, settings.morningSections, settings.afternoonSections)) {
             height += breakHeight;
           }

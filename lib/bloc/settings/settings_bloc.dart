@@ -24,7 +24,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<RefreshSettings>(_onRefreshSettings);
     on<UpdateTotalWeeks>(_onUpdateTotalWeeks);
     on<UpdateThemeMode>(_onUpdateThemeMode);
-    on<UpdateShowWeekend>(_onUpdateShowWeekend);
+    on<UpdateWeeklyScheduleDisplay>(_onUpdateWeeklyScheduleDisplay);
     on<UpdateSectionConfig>(_onUpdateSectionConfig);
     on<UpdateSectionTimes>(_onUpdateSectionTimes);
     on<UpdateStartSemesterDate>(_onUpdateStartSemesterDate);
@@ -55,10 +55,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     await _settingsDataStore.setThemeMode(event.themeMode);
   }
 
-  Future<void> _onUpdateShowWeekend(UpdateShowWeekend event, Emitter<SettingsState> emit) async {
-    await _settingsDataStore.setShowWeekend(event.showWeekend);
-  }
-
   Future<void> _onUpdateSectionConfig(UpdateSectionConfig event, Emitter<SettingsState> emit) async {
     await _settingsDataStore.setMorningSections(event.morning);
     await _settingsDataStore.setAfternoonSections(event.afternoon);
@@ -73,6 +69,11 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     if (event.date != null) {
       await _settingsDataStore.setStartSemester(event.date!.millisecondsSinceEpoch);
     }
+  }
+
+  Future<void> _onUpdateWeeklyScheduleDisplay(UpdateWeeklyScheduleDisplay event, Emitter<SettingsState> emit) async {
+    await _settingsDataStore.setShowWeekend(event.showWeekend);
+    await _settingsDataStore.setAdaptiveWidth(event.adaptiveWidth);
   }
 
   /// 处理从JSON导入课程事件

@@ -5,8 +5,6 @@ import 'package:schedu/model/section_time.dart';
 class AppSettings extends Equatable {
   // 学期总周数
   final int totalWeeks;
-  // 每天最多节数
-  final int maxSections;
   // 主题模式
   final ThemeMode themeMode;
   // 是否显示周末
@@ -23,10 +21,11 @@ class AppSettings extends Equatable {
   final int startSemester;
   // 开学时间是否从星期天开始计算
   final bool startWithSunday;
+  // 周课表宽度自适应
+  final bool adaptiveWidth;
 
   const AppSettings({
     this.totalWeeks = 20,
-    this.maxSections = 12,
     this.themeMode = ThemeMode.system,
     this.showWeekend = true,
     this.morningSections = 4,
@@ -35,7 +34,12 @@ class AppSettings extends Equatable {
     this.sectionTimes = defaultSectionTimes,
     this.startWithSunday = false,
     this.startSemester = -1,
+    this.adaptiveWidth = true,
   });
+
+  /// 每日总节数
+  int get totalDailySections =>
+      morningSections + afternoonSections + eveningSections;
 
   /// 默认节次列表（与原 `AppSettingsStore._getDefaultSectionTimesList()` 保持一致）
   static const List<SectionTime> defaultSectionTimes = [
@@ -59,7 +63,6 @@ class AppSettings extends Equatable {
 
   AppSettings copyWith({
     int? totalWeeks,
-    int? maxSections,
     ThemeMode? themeMode,
     bool? showWeekend,
     int? morningSections,
@@ -68,10 +71,10 @@ class AppSettings extends Equatable {
     List<SectionTime>? sectionTimes,
     int? startSemester,
     bool? startWithSunday,
+    bool? adaptiveWidth,
   }) {
     return AppSettings(
       totalWeeks: totalWeeks ?? this.totalWeeks,
-      maxSections: maxSections ?? this.maxSections,
       themeMode: themeMode ?? this.themeMode,
       showWeekend: showWeekend ?? this.showWeekend,
       morningSections: morningSections ?? this.morningSections,
@@ -80,13 +83,13 @@ class AppSettings extends Equatable {
       sectionTimes: sectionTimes ?? this.sectionTimes,
       startSemester: startSemester ?? this.startSemester,
       startWithSunday: startWithSunday ?? this.startWithSunday,
+      adaptiveWidth: adaptiveWidth ?? this.adaptiveWidth,
     );
   }
 
   @override
   List<Object?> get props => [
     totalWeeks,
-    maxSections,
     themeMode,
     showWeekend,
     morningSections,
@@ -95,5 +98,6 @@ class AppSettings extends Equatable {
     sectionTimes,
     startSemester,
     startWithSunday,
+    adaptiveWidth,
   ];
 }
