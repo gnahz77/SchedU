@@ -11,4 +11,8 @@ class RouteNames {
   /// 教务导入相关的路由
   static const JW_IMPORT_CONFIG = '/jw_import_config';
   static const JW_IMPORT_WEBVIEW = '/jw_import_webview';
+
+  /// 课程管理相关的路由
+  static const COURSE_MANAGEMENT = '/course_management';
+  static const COURSE_EDITING = '/course_editing';
 }

@@ -168,7 +168,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 title: '课程管理',
                 subtitle: '添加、编辑、删除课程',
                 onTap: () {
-                  // TODO: 导航到课程管理页面
+                  Navigator.pushNamed(context, RouteNames.COURSE_MANAGEMENT);
                 },
               ),
               // 开学时间设置
