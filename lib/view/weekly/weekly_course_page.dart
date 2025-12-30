@@ -9,6 +9,7 @@ import 'package:schedu/model/app_settings.dart';
 import 'package:schedu/model/course.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/style/colors.dart';
+import 'package:schedu/view/route_names.dart';
 import 'package:schedu/view/weekly/weekly_schedule_utils.dart';
 
 class WeeklyCoursePage extends StatefulWidget {
@@ -785,8 +786,19 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                       ),
                     ),
                     IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        final result = await Navigator.of(this.context).pushNamed(
+                          RouteNames.COURSE_EDITING,
+                          arguments: course,
+                        );
+                        if (result == true && mounted) {
+                          // 编辑完成后刷新课程列表
+                          this.context.read<WeeklyCourseBloc>().add(const RefreshWeeklyCourses());
+                        }
+                      },
+                      icon: const Icon(Icons.edit),
+                      tooltip: '编辑课程',
                       splashRadius: 20,
                     ),
                   ],

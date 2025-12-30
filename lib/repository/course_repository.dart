@@ -124,32 +124,30 @@ class CourseRepositoryImpl extends CourseRepository {
 
   @override
   Future<void> updateCourse(Course course) async {
+    if (course.id == null) {
+      throw ArgumentError('Course id is required when updating.');
+    }
     final db = await database;
     final normalized = _assignColorIdIfMissing(course);
     await db.update(
       _tableName,
       _courseToMap(normalized),
-      where: 'name = ? AND day = ? AND sections = ?',
-      whereArgs: [
-        course.name,
-        course.day,
-        jsonEncode(course.sections),
-      ],
+      where: 'id = ?',
+      whereArgs: [course.id],
     );
     _stream.add(null);
   }
 
   @override
   Future<void> deleteCourse(Course course) async {
+    if (course.id == null) {
+      throw ArgumentError('Course id is required when deleting.');
+    }
     final db = await database;
     await db.delete(
       _tableName,
-      where: 'name = ? AND day = ? AND sections = ?',
-      whereArgs: [
-        course.name,
-        course.day,
-        jsonEncode(course.sections),
-      ],
+      where: 'id = ?',
+      whereArgs: [course.id],
     );
     _stream.add(null);
   }
@@ -251,6 +249,7 @@ class CourseRepositoryImpl extends CourseRepository {
   /// 将Map转换为Course对象
   Course _mapToCourse(Map<String, dynamic> map) {
     return Course(
+      id: map['id'] as int?,
       name: map['name'],
       position: map['position'],
       teacher: map['teacher'],

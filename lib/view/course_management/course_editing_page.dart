@@ -144,11 +144,11 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
                   required: true,
                 ),
                 const SizedBox(height: 16),
+                _buildSectionSelector(),
+                const SizedBox(height: 16),
                 _buildDaySelector(),
                 const SizedBox(height: 16),
                 _buildWeekSelector(),
-                const SizedBox(height: 16),
-                _buildSectionSelector(),
                 const SizedBox(height: 24),
                 _buildColorSelector(),
                 const SizedBox(height: 32),
@@ -545,6 +545,7 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
     );
 
     final course = Course(
+      id: widget.course?.id,
       name: _nameController.text.trim(),
       position: _positionController.text.trim(),
       teacher: _teacherController.text.trim(),

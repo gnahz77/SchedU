@@ -8,6 +8,10 @@ part 'course.g.dart';
 @JsonSerializable()
 class Course extends Equatable {
   static const Object _colorIdUnset = Object();
+  /// 数据库主键 ID
+  @JsonKey(ignore: true)
+  final int? id;
+  
   /// 课程名称
   final String name;
   
@@ -31,6 +35,7 @@ class Course extends Equatable {
   final int? colorId;
 
   const Course({
+    this.id,
     required this.name,
     required this.position,
     required this.teacher,
@@ -48,6 +53,7 @@ class Course extends Equatable {
 
   /// 创建副本
   Course copyWith({
+    int? id,
     String? name,
     String? position,
     String? teacher,
@@ -57,6 +63,7 @@ class Course extends Equatable {
     Object? colorId = _colorIdUnset,
   }) {
     return Course(
+      id: id ?? this.id,
       name: name ?? this.name,
       position: position ?? this.position,
       teacher: teacher ?? this.teacher,
@@ -90,11 +97,11 @@ class Course extends Equatable {
   }
 
   @override
-  List<Object?> get props => [name, position, teacher, weeks, day, sections, colorId];
+  List<Object?> get props => [id, name, position, teacher, weeks, day, sections, colorId];
 
   @override
   String toString() {
-    return 'Course(name: $name, position: $position, teacher: $teacher, '
+    return 'Course(id: $id, name: $name, position: $position, teacher: $teacher, '
         'weeks: $weeks, day: $day, sections: $sections, colorId: $colorId)';
   }
 }
