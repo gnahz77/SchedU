@@ -139,6 +139,27 @@ function getSchedule(doc = document) {
         maxCols: 15      // 课表最多15列
     };
 
+    function normalizePattern(pattern) {
+        if (pattern instanceof RegExp) {
+            return pattern;
+        }
+        if (typeof pattern === 'string' && pattern.trim().length > 0) {
+            const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return new RegExp(escaped, 'i');
+        }
+        return null;
+    }
+
+    function matchesPattern(patterns, target) {
+        if (!target) {
+            return false;
+        }
+        return patterns.some(pattern => {
+            const regex = normalizePattern(pattern);
+            return regex ? regex.test(target) : false;
+        });
+    }
+
     /**
      * 计算元素的课表相关性得分
      */
@@ -169,11 +190,13 @@ function getSchedule(doc = document) {
 
         // 2.  容器模式匹配得分
         CONTAINER_PATTERNS.classNames.forEach(pattern => {
-            if (pattern.test(className)) score += 20;
+            const regex = normalizePattern(pattern);
+            if (regex && regex.test(className)) score += 20;
         });
 
         CONTAINER_PATTERNS.ids.forEach(pattern => {
-            if (pattern.test(id)) score += 25;
+            const regex = normalizePattern(pattern);
+            if (regex && regex.test(id)) score += 25;
         });
 
         // 3. 表格结构得分
@@ -313,8 +336,8 @@ function getSchedule(doc = document) {
         for (let elem of allElements) {
             const className = elem.className || '';
             const id = elem.id || '';
-            const matchesClass = CONTAINER_PATTERNS.classNames.some(p => p.test(className));
-            const matchesId = CONTAINER_PATTERNS.ids.some(p => p.test(id));
+            const matchesClass = matchesPattern(CONTAINER_PATTERNS.classNames, className);
+            const matchesId = matchesPattern(CONTAINER_PATTERNS.ids, id);
             if (matchesClass || matchesId) {
                 candidates.push({ element: elem, source: sourcePrefix + '-pattern-match' });
             }
