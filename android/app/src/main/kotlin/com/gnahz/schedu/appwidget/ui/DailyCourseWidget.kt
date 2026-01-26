@@ -144,7 +144,6 @@ class DailyCourseWidget : GlanceAppWidget() {
         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
             items(courses) { courseWithStatus ->
                 CourseCard(courseWithStatus, sectionTimes)
-                Spacer(modifier = GlanceModifier.height(8.dp))
             }
         }
     }
@@ -168,13 +167,13 @@ class DailyCourseWidget : GlanceAppWidget() {
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .background(cardBackground)
+                .clickable(actionRunCallback<OpenAppAction>())
                 .cornerRadius(12.dp)
                 .padding(12.dp)
         ) {
             Column(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .clickable(actionRunCallback<OpenAppAction>())
             ) {
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
@@ -376,11 +375,9 @@ class DailyCourseWidget : GlanceAppWidget() {
         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
             items(todayCourses) { courseWithStatus ->
                 CourseCard(courseWithStatus, sectionTimes)
-                Spacer(modifier = GlanceModifier.height(8.dp))
             }
 
             item {
-                Spacer(modifier = GlanceModifier.height(8.dp))
                 TomorrowPreview(tomorrowCourses, sectionTimes)
             }
         }
@@ -422,7 +419,6 @@ class DailyCourseWidget : GlanceAppWidget() {
                     tomorrowCourses.forEach { courseWithStatus ->
                         CourseCard(courseWithStatus, sectionTimes)
 //                        TomorrowCourseRow(courseWithStatus.course, sectionTimes)
-                        Spacer(modifier = GlanceModifier.height(6.dp))
                     }
                 }
             }
