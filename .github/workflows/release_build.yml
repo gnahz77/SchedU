@@ -51,3 +51,67 @@ jobs:
           files: build/app/outputs/flutter-apk/*-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Sync Release assets to Gitee (after GitHub Release created) ---
+      - name: Get GitHub Release info
+        run: |
+          curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/releases/tags/${GITHUB_REF_NAME} \
+            > release.json
+
+          echo "TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "TITLE=$(jq -r '.name' release.json)" >> $GITHUB_ENV
+
+          echo "BODY<<EOF" >> $GITHUB_ENV
+          jq -r '.body' release.json >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Download GitHub Release assets (exclude source code)
+        run: |
+          mkdir -p assets
+
+          jq -r '.assets[].browser_download_url' release.json \
+          | grep -v 'source\.code' \
+          | while read url; do
+              echo "Downloading $url"
+              curl -L -o "assets/$(basename "$url")" "$url"
+            done
+
+      - name: Check and delete existing Gitee Release
+        run: |
+          EXISTING=$(curl -s \
+            "https://gitee.com/api/v5/repos/gnahz77/SchedU/releases/tags/${TAG}?access_token=${{ secrets.GITEE_TOKEN }}")
+
+          ID=$(echo "$EXISTING" | jq -r '.id // empty')
+
+          if [ -n "$ID" ]; then
+            echo "Existing Gitee release found (id=$ID), deleting..."
+            curl -s -X DELETE \
+              "https://gitee.com/api/v5/repos/gnahz77/SchedU/releases/$ID?access_token=${{ secrets.GITEE_TOKEN }}"
+          else
+            echo "No existing Gitee release"
+          fi
+
+      - name: Create Gitee Release
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            "https://gitee.com/api/v5/repos/gnahz77/SchedU/releases" \
+            -d "access_token=${{ secrets.GITEE_TOKEN }}" \
+            -d "tag_name=${TAG}" \
+            -d "name=${TITLE}" \
+            --data-urlencode "body=${BODY}")
+
+          echo "$RESPONSE" > gitee_release.json
+          echo "GITEE_RELEASE_ID=$(jq -r '.id' gitee_release.json)" >> $GITHUB_ENV
+
+      - name: Upload assets to Gitee
+        run: |
+          for file in assets/*; do
+            echo "Uploading $file"
+            curl -s -X POST \
+              "https://gitee.com/api/v5/repos/gnahz77/SchedU/releases/${GITEE_RELEASE_ID}/assets" \
+              -F "access_token=${{ secrets.GITEE_TOKEN }}" \
+              -F "file=@${file}"
+          done
