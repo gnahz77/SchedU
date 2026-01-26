@@ -77,7 +77,9 @@ class DailyCourseWidget : GlanceAppWidget() {
             Spacer(modifier = GlanceModifier.height(8.dp))
 
             // 课程列表
-            if (data.todayCourses.isEmpty()) {
+            if (data.isHoliday) {
+                HolidayState()
+            } else if (data.todayCourses.isEmpty()) {
                 EmptyState(data.tomorrowCourses, data.sectionTimes)
             } else if (data.allFinished) {
                 // 今日课程全部结束，显示今日课程和明日预告
@@ -338,6 +340,30 @@ class DailyCourseWidget : GlanceAppWidget() {
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun HolidayState() {
+        Column(
+            modifier = GlanceModifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                provider = ImageProvider(R.drawable.ic_event_available),
+                contentDescription = null,
+                modifier = GlanceModifier.size(48.dp)
+            )
+            Spacer(modifier = GlanceModifier.height(8.dp))
+            Text(
+                text = "假期中",
+                style = TextStyle(
+                    color = WidgetColors.textSecondary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            )
         }
     }
 

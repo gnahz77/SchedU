@@ -32,13 +32,13 @@ class Routes {
           create: (context) => DailyCourseBloc(
             context.read<CourseRepository>(),
             AppSettingsStore.instance,
-          )..add(const RefreshDailyCourses()),
+          ),
         ),
         BlocProvider(
           create: (context) => WeeklyCourseBloc(
             context.read<CourseRepository>(),
             AppSettingsStore.instance,
-          )..add(const RefreshWeeklyCourses()),
+          ),
         ),
       ],
       child: const MainPage(),

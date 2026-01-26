@@ -114,7 +114,9 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '第 ${state.currentWeek} 周 ${_getWeekDateRange(state.weekStart)}',
+                        state.isHoliday
+                            ? '假期中'
+                            : '第 ${state.currentWeek} 周 ${_getWeekDateRange(state.weekStart)}',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -130,21 +132,24 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                 ),
               ),
               // 周视图主体
-              Expanded(
-                child: Builder(
-                  builder: (context) {
-                    if (state.courses.isEmpty) {
-                      return _buildEmptyState(context);
-                    }
-                    return _buildWeeklySchedule(
-                      context,
-                      state.courses,
-                      state.settings,
-                      state.weekStart,
-                    );
-                  },
+                Expanded(
+                  child: Builder(
+                    builder: (context) {
+                      if (state.isHoliday) {
+                        return _buildHolidayState(context);
+                      }
+                      if (state.courses.isEmpty) {
+                        return _buildEmptyState(context);
+                      }
+                      return _buildWeeklySchedule(
+                        context,
+                        state.courses,
+                        state.settings,
+                        state.weekStart,
+                      );
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         );
@@ -570,6 +575,28 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
           const SizedBox(height: 16),
           Text(
             '本周无课程安排',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHolidayState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.beach_access_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '假期中',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

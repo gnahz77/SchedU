@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:schedu/bloc/settings/settings_bloc.dart';
-import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/model/course.dart';
 import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
 import 'package:schedu/bloc/daily_course/daily_course_event.dart';
@@ -84,6 +82,7 @@ class _DailyCoursePageState extends State<DailyCoursePage>
                     tomorrowCourses: dailyState.tomorrowCourses,
                     sectionTimes: dailyState.sectionTimes,
                     today: dailyState.today,
+                    isHoliday: dailyState.isHoliday,
                   ),
                 ),
               ],
@@ -103,7 +102,11 @@ class _DailyCoursePageState extends State<DailyCoursePage>
     required List<CourseWithStatus> tomorrowCourses,
     required List<SectionTime> sectionTimes,
     required DateTime today,
+    required bool isHoliday,
   }) {
+    if (isHoliday) {
+      return _buildHolidayState();
+    }
     if (todayCourses.isEmpty) {
       return SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -440,6 +443,28 @@ class _DailyCoursePageState extends State<DailyCoursePage>
           Text(
             '享受悠闲的一天吧！',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHolidayState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.beach_access_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '假期中',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),

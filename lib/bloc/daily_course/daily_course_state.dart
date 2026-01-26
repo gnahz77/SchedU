@@ -34,6 +34,7 @@ class DailyCourseLoaded extends DailyCourseState {
   final List<CourseWithStatus> tomorrowCourses;
   final int currentWeekNumber;
   final List<SectionTime> sectionTimes;
+  final bool isHoliday;
 
   const DailyCourseLoaded({
     required this.today,
@@ -42,6 +43,7 @@ class DailyCourseLoaded extends DailyCourseState {
     required this.tomorrowCourses,
     required this.currentWeekNumber,
     required this.sectionTimes,
+    required this.isHoliday,
   });
 
   @override
@@ -52,6 +54,7 @@ class DailyCourseLoaded extends DailyCourseState {
     tomorrowCourses,
     currentWeekNumber,
     sectionTimes,
+    isHoliday,
   ];
 }
 

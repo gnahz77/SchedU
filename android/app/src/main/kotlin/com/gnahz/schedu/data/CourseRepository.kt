@@ -24,6 +24,8 @@ class CourseRepository(private val context: Context) {
         private const val FLUTTER_PREFS_NAME = "FlutterSharedPreferences"
         private const val KEY_SECTION_TIMES = "flutter.section_times"
         private const val KEY_START_SEMESTER = "flutter.start_semester"
+        private const val KEY_TOTAL_WEEKS = "flutter.total_weeks"
+        private const val DEFAULT_TOTAL_WEEKS = 20
 
         // 默认节次时间
         private val DEFAULT_SECTION_TIMES = listOf(
@@ -93,9 +95,25 @@ class CourseRepository(private val context: Context) {
         return try {
             val prefs = getFlutterPrefs()
             val millis = prefs.getLong(KEY_START_SEMESTER, System.currentTimeMillis())
-            Calendar.getInstance().apply { timeInMillis = millis }
+            if (millis <= 0L) {
+                Calendar.getInstance()
+            } else {
+                Calendar.getInstance().apply { timeInMillis = millis }
+            }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    /**
+     * 获取学期总周数
+     */
+    private fun getTotalWeeks(): Int {
+        return try {
+            val prefs = getFlutterPrefs()
+            prefs.getInt(KEY_TOTAL_WEEKS, DEFAULT_TOTAL_WEEKS)
+        } catch (e: Exception) {
+            DEFAULT_TOTAL_WEEKS
         }
     }
 
@@ -118,6 +136,27 @@ class CourseRepository(private val context: Context) {
         } else {
             0L
         }
+    }
+
+    private fun normalizeDate(date: Calendar): Calendar {
+        return (date.clone() as Calendar).apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+    }
+
+    private fun isHoliday(date: Calendar): Boolean {
+        val startSemester = getStartSemesterDate() ?: return false
+        val totalWeeks = getTotalWeeks()
+        if (totalWeeks < 1) return false
+        val startDate = normalizeDate(startSemester)
+        val endDate = normalizeDate(startSemester).apply {
+            add(Calendar.DAY_OF_YEAR, totalWeeks * 7 - 1)
+        }
+        val checkDate = normalizeDate(date)
+        return checkDate.before(startDate) || checkDate.after(endDate)
     }
 
     /**
@@ -296,22 +335,31 @@ class CourseRepository(private val context: Context) {
         val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 1) }
         val sectionTimes = getSectionTimes()
         val currentWeek = calculateCurrentWeek(today)
+        val isHoliday = isHoliday(today)
 
-        val todayCourses = getCoursesForDate(today).map { course ->
-            CourseWithStatus(
-                course = course,
-                status = getCourseStatus(course, today, sectionTimes)
-            )
+        val todayCourses = if (isHoliday) {
+            emptyList()
+        } else {
+            getCoursesForDate(today).map { course ->
+                CourseWithStatus(
+                    course = course,
+                    status = getCourseStatus(course, today, sectionTimes)
+                )
+            }
         }
 
-        val tomorrowCourses = getCoursesForDate(tomorrow).map { course ->
-            CourseWithStatus(
-                course = course,
-                status = getCourseStatus(course, tomorrow, sectionTimes)
-            )
+        val tomorrowCourses = if (isHoliday) {
+            emptyList()
+        } else {
+            getCoursesForDate(tomorrow).map { course ->
+                CourseWithStatus(
+                    course = course,
+                    status = getCourseStatus(course, tomorrow, sectionTimes)
+                )
+            }
         }
 
-        val allFinished = todayCourses.all { it.status == CourseStatus.FINISHED }
+        val allFinished = todayCourses.isNotEmpty() && todayCourses.all { it.status == CourseStatus.FINISHED }
 
         val weekdays = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
         val dayOfWeek = when (today.get(Calendar.DAY_OF_WEEK)) {
@@ -332,7 +380,8 @@ class CourseRepository(private val context: Context) {
             sectionTimes = sectionTimes,
             currentWeek = currentWeek,
             dateText = dateText,
-            allFinished = allFinished
+            allFinished = allFinished,
+            isHoliday = isHoliday
         )
     }
 }

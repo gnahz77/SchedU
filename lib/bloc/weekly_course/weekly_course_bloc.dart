@@ -6,6 +6,7 @@ import 'package:schedu/bloc/weekly_course/weekly_course_state.dart';
 import 'package:schedu/repository/app_settings_store.dart';
 import 'package:schedu/repository/course_repository.dart';
 import 'package:schedu/view/weekly/weekly_schedule_utils.dart';
+import 'package:schedu/model/course.dart';
 
 /// 周课程业务逻辑处理
 class WeeklyCourseBloc extends Bloc<WeeklyCourseEvent, WeeklyCourseState> {
@@ -104,14 +105,21 @@ class WeeklyCourseBloc extends Bloc<WeeklyCourseEvent, WeeklyCourseState> {
     final startSemester = DateTime.fromMillisecondsSinceEpoch(_settingsDataStore.data.startSemester);
     // 获取周起始日期
     final weekStart = _getWeekStart(weekNumber, startSemester);
-    // 过滤当前周的课程
-    final weeklyCourses = await _courseRepository.getCoursesForWeek(weekNumber);
+    final isHoliday = _isHoliday(weekStart, startSemester, _settingsDataStore.data.totalWeeks);
+    final List<Course> weeklyCourses;
+    if (isHoliday) {
+      weeklyCourses = [];
+    } else {
+      // 过滤当前周的课程
+      weeklyCourses = await _courseRepository.getCoursesForWeek(weekNumber);
+    }
 
     emit(WeeklyCourseLoaded(
       currentWeek: weekNumber,
       weekStart: weekStart,
       courses: weeklyCourses,
       settings: _settingsDataStore.data,
+      isHoliday: isHoliday,
     ));
   }
 
@@ -122,5 +130,12 @@ class WeeklyCourseBloc extends Bloc<WeeklyCourseEvent, WeeklyCourseState> {
     }
     final start = WeeklyScheduleUtils.getWeekStart(startSemester);
     return start.add(Duration(days: (weekNumber - 1) * 7));
+  }
+
+  bool _isHoliday(DateTime weekStart, DateTime startSemester, int totalWeeks) {
+    if (totalWeeks < 1) return false;
+    final startDate = DateTime(startSemester.year, startSemester.month, startSemester.day);
+    final endDate = startDate.add(Duration(days: totalWeeks * 7 - 1));
+    return weekStart.isBefore(startDate) || weekStart.isAfter(endDate);
   }
 }

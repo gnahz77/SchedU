@@ -59,5 +59,6 @@ data class WidgetDisplayData(
     val sectionTimes: List<SectionTime>,
     val currentWeek: Int,
     val dateText: String,
-    val allFinished: Boolean
+    val allFinished: Boolean,
+    val isHoliday: Boolean
 )

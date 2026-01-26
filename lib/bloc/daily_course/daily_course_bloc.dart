@@ -23,7 +23,7 @@ class DailyCourseBloc extends Bloc<DailyCourseEvent, DailyCourseState> {
     _courseSub = _courseRepository.stream.listen((_) {
       add(RefreshDailyCourses());
     });
-    _settingsSub = _settingsStore.stream.listen((_) {
+    _settingsSub = _settingsStore.stream.listen((data) {
       add(RefreshDailyCourses());
     });
   }
@@ -49,19 +49,27 @@ class DailyCourseBloc extends Bloc<DailyCourseEvent, DailyCourseState> {
         : DateTime.fromMillisecondsSinceEpoch(_settingsStore.data.startSemester);
     final sectionTimes = _settingsStore.data.sectionTimes;
     final currentWeekNumber = _calculateWeekNumber(today, startSemester);
+    final isHoliday = _isHoliday(today, startSemester, _settingsStore.data.totalWeeks);
 
-    final todayCourses = (await _courseRepository.getCoursesForDay(currentWeekNumber, today.weekday))
-        .map((course) => CourseWithStatus(
-          course: course,
-          status: _getCourseStatus(course, today, sectionTimes, startSemester),
-        )).toList();
-    todayCourses.sort((a, b) => a.course.sections.first.compareTo(b.course.sections.first));
-    final tomorrowCourses = (await _courseRepository.getCoursesForDay(currentWeekNumber + (tomorrow.weekday < today.weekday ? 1 : 0), tomorrow.weekday))
-        .map((course) => CourseWithStatus(
-          course: course,
-          status: _getCourseStatus(course, tomorrow, sectionTimes, startSemester),
-        )).toList();
-    tomorrowCourses.sort((a, b) => a.course.sections.first.compareTo(b.course.sections.first));
+    final List<CourseWithStatus> todayCourses;
+    final List<CourseWithStatus> tomorrowCourses;
+    if (isHoliday) {
+      todayCourses = [];
+      tomorrowCourses = [];
+    } else {
+      todayCourses = (await _courseRepository.getCoursesForDay(currentWeekNumber, today.weekday))
+          .map((course) => CourseWithStatus(
+            course: course,
+            status: _getCourseStatus(course, today, sectionTimes, startSemester),
+          )).toList();
+      todayCourses.sort((a, b) => a.course.sections.first.compareTo(b.course.sections.first));
+      tomorrowCourses = (await _courseRepository.getCoursesForDay(currentWeekNumber + (tomorrow.weekday < today.weekday ? 1 : 0), tomorrow.weekday))
+          .map((course) => CourseWithStatus(
+            course: course,
+            status: _getCourseStatus(course, tomorrow, sectionTimes, startSemester),
+          )).toList();
+      tomorrowCourses.sort((a, b) => a.course.sections.first.compareTo(b.course.sections.first));
+    }
 
     emit(DailyCourseLoaded(
       today: today,
@@ -70,6 +78,7 @@ class DailyCourseBloc extends Bloc<DailyCourseEvent, DailyCourseState> {
       tomorrowCourses: tomorrowCourses,
       currentWeekNumber: currentWeekNumber,
       sectionTimes: sectionTimes,
+      isHoliday: isHoliday,
     ));
   }
 
@@ -150,6 +159,14 @@ class DailyCourseBloc extends Bloc<DailyCourseEvent, DailyCourseState> {
     final diff = d.difference(s).inDays;
     if (diff < 0) return 1;
     return (diff / 7).floor() + 1;
+  }
+
+  bool _isHoliday(DateTime date, DateTime startSemester, int totalWeeks) {
+    if (totalWeeks < 1) return false;
+    final checkDate = DateTime(date.year, date.month, date.day);
+    final startDate = DateTime(startSemester.year, startSemester.month, startSemester.day);
+    final endDate = startDate.add(Duration(days: totalWeeks * 7 - 1));
+    return checkDate.isBefore(startDate) || checkDate.isAfter(endDate);
   }
 
   /// 获取当天的开始时间
