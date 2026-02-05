@@ -10,7 +10,6 @@ import 'package:schedu/bloc/settings/settings_bloc.dart';
 import 'package:schedu/bloc/settings/settings_event.dart';
 import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/gen/assets.gen.dart';
-import 'package:schedu/model/app_settings.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/service/course_import_service.dart';
 
@@ -106,45 +105,55 @@ class _ProfilePageState extends State<ProfilePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        child: Icon(
-                          Icons.person,
-                          size: 36,
-                          color: Theme.of(context).colorScheme.onPrimary,
+                child: InkWell(
+                  onTap: () {
+                    showLicensePage(
+                      context: context,
+                      applicationName: 'SchedU',
+                      applicationVersion: _appVersion,
+                      applicationIcon: SvgPicture.asset(
+                        Assets.images.scheduIcon,
+                        width: 52,
+                        height: 52,
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        SvgPicture.asset(
+                          Assets.images.scheduIcon,
+                          width: 52,
+                          height: 52,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '学生用户',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'SchedU',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '点击编辑个人信息',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 4),
+                              Text(
+                                'v$_appVersion',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ],
+                        Icon(
+                          Icons.chevron_right,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -311,14 +320,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 title: '添加小组件',
                 subtitle: '将“今日课程”桌面小组件固定到桌面',
                 onTap: () => _handleAddWidgetTap(context),
-              ),
-              // 关于应用
-              _buildSettingItem(
-                context,
-                icon: Icons.info_outline,
-                title: '关于应用',
-                subtitle: '版本 $_appVersion',
-                onTap: () => _showAboutDialog(context),
               ),
               const SizedBox(height: 32),
             ],
@@ -824,25 +825,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-    );
-  }
-
-  /// 显示关于对话框
-  void _showAboutDialog(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: 'SchedU',
-      applicationVersion: _appVersion.isEmpty ? null : _appVersion,
-      applicationIcon: SvgPicture.asset(
-        Assets.images.scheduIcon,
-        width: 48,
-        height: 48,
-      ),
-      children: [
-        const Text('SchedU是一个简洁优雅、开源免费的课程表应用，采用Material 3设计风格。'),
-        const SizedBox(height: 8),
-        const Text('支持课程管理、提醒设置、多视图展示、等功能。可以从JSON文件或教务系统导入课程数据。'),
-      ],
     );
   }
 
