@@ -181,14 +181,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 subtitle: '当前设置: ${settingsState.appSettings.totalWeeks}周',
                 onTap: () => _showTotalWeeksSettingDialog(context, settingsState.appSettings.totalWeeks),
               ),
-              // 周课表展示设置（显示周末 + 宽度自适应）
-              _buildSettingItem(
-                context,
-                icon: Icons.grid_view,
-                title: '周课表展示设置',
-                subtitle: _getWeeklyScheduleDisplaySubtitle(settingsState.appSettings),
-                onTap: () => _showWeeklyScheduleDisplayDialog(context, settingsState.appSettings),
-              ),
               // 每日节数设置
               _buildSettingItem(
                 context,
@@ -213,6 +205,45 @@ class _ProfilePageState extends State<ProfilePage> {
                   settingsState.appSettings.sectionTimes,
                   settingsState.appSettings.totalDailySections,
                 ),
+              ),
+              // 显示周末开关
+              _buildSwitchSettingItem(
+                context,
+                icon: Icons.weekend_outlined,
+                title: '显示周末',
+                subtitle: '在周视图中显示周六、周日',
+                value: settingsState.appSettings.showWeekend,
+                onChanged: (value) {
+                  context.read<SettingsBloc>().add(UpdateWeeklyScheduleDisplay(
+                    showWeekend: value,
+                    adaptiveWidth: settingsState.appSettings.adaptiveWidth,
+                  ));
+                },
+              ),
+              // 宽度自适应开关
+              _buildSwitchSettingItem(
+                context,
+                icon: Icons.aspect_ratio_outlined,
+                title: '宽度自适应',
+                subtitle: '占满屏幕宽度，禁用横向滑动',
+                value: settingsState.appSettings.adaptiveWidth,
+                onChanged: (value) {
+                  context.read<SettingsBloc>().add(UpdateWeeklyScheduleDisplay(
+                    showWeekend: settingsState.appSettings.showWeekend,
+                    adaptiveWidth: value,
+                  ));
+                },
+              ),
+              // 显示非本周课程开关
+              _buildSwitchSettingItem(
+                context,
+                icon: Icons.visibility_outlined,
+                title: '显示非本周课程',
+                subtitle: '在周视图中以灰色显示非本周的课程',
+                value: settingsState.appSettings.showNonCurrentWeekCourses,
+                onChanged: (value) {
+                  context.read<SettingsBloc>().add(UpdateShowNonCurrentWeekCourses(value));
+                },
               ),
               const SizedBox(height: 24),
 
@@ -335,6 +366,45 @@ class _ProfilePageState extends State<ProfilePage> {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         onTap: onTap,
+      ),
+    );
+  }
+
+  /// 构建开关设置项
+  Widget _buildSwitchSettingItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SwitchListTile(
+        secondary: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        value: value,
+        onChanged: onChanged,
+        activeColor: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -527,62 +597,9 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  String _getWeeklyScheduleDisplaySubtitle(AppSettings appSettings) {
-    final weekendText = appSettings.showWeekend ? '显示周末：已开启' : '显示周末：已关闭';
-    final widthText = appSettings.adaptiveWidth ? '宽度自适应：已开启' : '宽度自适应：已关闭';
-    return '$weekendText · $widthText';
-  }
 
-  void _showWeeklyScheduleDisplayDialog(BuildContext context, AppSettings appSettings) {
-    bool showWeekend = appSettings.showWeekend;
-    bool adaptiveWidth = appSettings.adaptiveWidth;
 
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('周课表展示设置'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SwitchListTile(
-                title: const Text('显示周末'),
-                subtitle: const Text('在周视图中显示周六、周日'),
-                value: showWeekend,
-                onChanged: (value) => setState(() => showWeekend = value),
-              ),
-              SwitchListTile(
-                title: const Text('宽度自适应'),
-                subtitle: const Text('占满屏幕宽度，禁用横向滑动'),
-                value: adaptiveWidth,
-                onChanged: (value) => setState(() => adaptiveWidth = value),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final bloc = context.read<SettingsBloc>();
-                bloc.add(UpdateWeeklyScheduleDisplay(
-                  showWeekend: showWeekend,
-                  adaptiveWidth: adaptiveWidth,
-                ));
-                Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('周课表展示设置已保存')),
-                );
-              },
-              child: const Text('确定'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   TimeOfDay? _parseTimeOfDay(String value) {
     if (value.isEmpty) return null;

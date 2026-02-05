@@ -23,32 +23,33 @@ class WeeklyCourseLoading extends WeeklyCourseState {
 class WeeklyCourseLoaded extends WeeklyCourseState {
   final int currentWeek;
   final DateTime weekStart;
-  final List<Course> courses; // 当前周的课程
+  // 每周7天的课程列表（day=1 对应索引 0）
+  final List<List<Course>> coursesByDay;
   final AppSettings settings;
   final bool isHoliday;
 
   const WeeklyCourseLoaded({
     required this.currentWeek,
     required this.weekStart,
-    required this.courses,
+    required this.coursesByDay,
     required this.settings,
     required this.isHoliday,
   });
 
   @override
-  List<Object?> get props => [currentWeek, weekStart, courses, settings, isHoliday];
+  List<Object?> get props => [currentWeek, weekStart, coursesByDay, settings, isHoliday];
 
   WeeklyCourseLoaded copyWith({
     int? currentWeek,
     DateTime? weekStart,
-    List<Course>? courses,
+    List<List<Course>>? coursesByDay,
     AppSettings? settings,
     bool? isHoliday,
   }) {
     return WeeklyCourseLoaded(
       currentWeek: currentWeek ?? this.currentWeek,
       weekStart: weekStart ?? this.weekStart,
-      courses: courses ?? this.courses,
+      coursesByDay: coursesByDay ?? this.coursesByDay,
       settings: settings ?? this.settings,
       isHoliday: isHoliday ?? this.isHoliday,
     );

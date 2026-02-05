@@ -90,3 +90,11 @@ class ExportCourseTimes extends SettingsEvent {
   @override
   List<Object?> get props => [];
 }
+
+/// 更新是否显示非当前周课程
+class UpdateShowNonCurrentWeekCourses extends SettingsEvent {
+  final bool show;
+  const UpdateShowNonCurrentWeekCourses(this.show);
+  @override
+  List<Object?> get props => [show];
+}

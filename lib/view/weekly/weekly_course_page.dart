@@ -132,24 +132,27 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                 ),
               ),
               // 周视图主体
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      if (state.isHoliday) {
-                        return _buildHolidayState(context);
-                      }
-                      if (state.courses.isEmpty) {
-                        return _buildEmptyState(context);
-                      }
-                      return _buildWeeklySchedule(
-                        context,
-                        state.courses,
-                        state.settings,
-                        state.weekStart,
-                      );
-                    },
-                  ),
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    if (state.isHoliday) {
+                      return _buildHolidayState(context);
+                    }
+                    final hasCourses = state.coursesByDay
+                        .any((dayCourses) => dayCourses.isNotEmpty);
+                    if (!hasCourses) {
+                      return _buildEmptyState(context);
+                    }
+                    return _buildWeeklySchedule(
+                      context,
+                      state.coursesByDay,
+                      state.settings,
+                      state.weekStart,
+                      currentWeek: state.currentWeek,
+                    );
+                  },
                 ),
+              ),
             ],
           ),
         );
@@ -158,14 +161,9 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 根据课程与当前设置构建整个周视图
-  Widget _buildWeeklySchedule(BuildContext context, List<Course> courses, AppSettings settings, DateTime weekStart) {
+  Widget _buildWeeklySchedule(BuildContext context, List<List<Course>> coursesByDay, AppSettings settings, DateTime weekStart, {required int currentWeek}) {
     final displayDays = WeeklyScheduleUtils.getDisplayWeekdays(settings.showWeekend);
     final dayCount = displayDays.length;
-
-    final Map<int, List<Course>> coursesByDay = {};
-    for (int i = 1; i <= dayCount; i++) {
-      coursesByDay[i] = courses.where((c) => c.day == i).toList();
-    }
 
     const sectionColumnWidth = 48.0;
     const minDayColumnWidth = 68.0;
@@ -193,7 +191,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildTableHeader(context, displayDays, weekStart, sectionColumnWidth, dayColumnWidth, headerHeight),
-            _buildTableContent(context, coursesByDay, dayCount, settings, sectionColumnWidth, dayColumnWidth, sectionCellHeight, breakCellHeight),
+            _buildTableContent(context, coursesByDay, dayCount, settings, sectionColumnWidth, dayColumnWidth, sectionCellHeight, breakCellHeight, currentWeek: currentWeek),
           ],
         );
 
@@ -299,13 +297,13 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 构建表格内容区域
-  Widget _buildTableContent(BuildContext context, Map<int, List<Course>> coursesByDay, int dayCount, AppSettings settings, double sectionWidth, double dayWidth, double sectionHeight, double breakHeight) {
+  Widget _buildTableContent(BuildContext context, List<List<Course>> coursesByDay, int dayCount, AppSettings settings, double sectionWidth, double dayWidth, double sectionHeight, double breakHeight, {required int currentWeek}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionColumn(context, settings, sectionWidth, sectionHeight, breakHeight),
         ...List.generate(dayCount, (index) {
-          return _buildDayColumn(context, index + 1, coursesByDay[index + 1] ?? [], settings, dayWidth, sectionHeight, breakHeight);
+          return _buildDayColumn(context, index + 1, coursesByDay[index], settings, dayWidth, sectionHeight, breakHeight, currentWeek: currentWeek);
         }),
       ],
     );
@@ -325,7 +323,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 构建单日列
-  Widget _buildDayColumn(BuildContext context, int day, List<Course> courses, AppSettings settings, double dayWidth, double sectionHeight, double breakHeight) {
+  Widget _buildDayColumn(BuildContext context, int day, List<Course> courses, AppSettings settings, double dayWidth, double sectionHeight, double breakHeight, {required int currentWeek}) {
     final List<Widget> children = [];
     int section = 1;
     while (section <= settings.totalDailySections) {
@@ -378,7 +376,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
           padding: const EdgeInsets.all(2),
           child: GestureDetector(
             onTap: () => _showCourseDetail(context, course, settings),
-            child: _buildCourseCell(context, course),
+            child: _buildCourseCell(context, course, currentWeek: currentWeek),
           ),
         ));
         
@@ -501,14 +499,15 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   }
 
   /// 构建课程格子内容
-  Widget _buildCourseCell(BuildContext context, Course course) {
+  Widget _buildCourseCell(BuildContext context, Course course, {required int currentWeek}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // 定义一个阈值，当格子高度小于此值时不显示位置信息
         const double positionShowThreshold = 65.0;
         final showPosition = constraints.maxHeight >= positionShowThreshold;
-        final backgroundColor = _getCourseBackgroundColor(context, course);
-        final textColor = _getCourseContentColor(backgroundColor);
+        final isCurrentWeek = course.weeks.contains(currentWeek);
+        final backgroundColor = _getCourseBackgroundColor(context, course, currentWeek: currentWeek);
+        final textColor = _getCourseContentColor(context, backgroundColor, isCurrentWeek: isCurrentWeek);
         final subTextColor = textColor.withOpacity(0.9);
         return Container(
           width: double.infinity,
@@ -1051,7 +1050,14 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     return hash;
   }
 
-  Color _getCourseBackgroundColor(BuildContext context, Course course) {
+  Color _getCourseBackgroundColor(BuildContext context, Course course, {required int currentWeek}) {
+    final isCurrentWeek = course.weeks.contains(currentWeek);
+    if (!isCurrentWeek) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return isDark
+          ? Colors.grey.shade800.withOpacity(0.6)
+          : Colors.grey.shade300.withOpacity(0.6);
+    }
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final palette = isDark
@@ -1065,7 +1071,10 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     return palette[index];
   }
 
-  Color _getCourseContentColor(Color backgroundColor) {
+  Color _getCourseContentColor(BuildContext context, Color backgroundColor, {required bool isCurrentWeek}) {
+    if (!isCurrentWeek) {
+      return Theme.of(context).colorScheme.onSurfaceVariant;
+    }
     return ThemeData.estimateBrightnessForColor(backgroundColor) == Brightness.dark
         ? Colors.white
         : Colors.black87;

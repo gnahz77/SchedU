@@ -23,6 +23,8 @@ class AppSettings extends Equatable {
   final bool startWithSunday;
   // 周课表宽度自适应
   final bool adaptiveWidth;
+  // 周课表是否显示非当前周课程
+  final bool showNonCurrentWeekCourses;
 
   const AppSettings({
     this.totalWeeks = 20,
@@ -35,6 +37,7 @@ class AppSettings extends Equatable {
     this.startWithSunday = false,
     this.startSemester = -1,
     this.adaptiveWidth = true,
+    this.showNonCurrentWeekCourses = false,
   });
 
   /// 每日总节数
@@ -72,6 +75,7 @@ class AppSettings extends Equatable {
     int? startSemester,
     bool? startWithSunday,
     bool? adaptiveWidth,
+    bool? showNonCurrentWeekCourses,
   }) {
     return AppSettings(
       totalWeeks: totalWeeks ?? this.totalWeeks,
@@ -84,6 +88,7 @@ class AppSettings extends Equatable {
       startSemester: startSemester ?? this.startSemester,
       startWithSunday: startWithSunday ?? this.startWithSunday,
       adaptiveWidth: adaptiveWidth ?? this.adaptiveWidth,
+      showNonCurrentWeekCourses: showNonCurrentWeekCourses ?? this.showNonCurrentWeekCourses,
     );
   }
 
@@ -99,5 +104,6 @@ class AppSettings extends Equatable {
     startSemester,
     startWithSunday,
     adaptiveWidth,
+    showNonCurrentWeekCourses,
   ];
 }

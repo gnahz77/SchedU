@@ -106,21 +106,58 @@ class WeeklyCourseBloc extends Bloc<WeeklyCourseEvent, WeeklyCourseState> {
     // 获取周起始日期
     final weekStart = _getWeekStart(weekNumber, startSemester);
     final isHoliday = _isHoliday(weekStart, startSemester, _settingsDataStore.data.totalWeeks);
-    final List<Course> weeklyCourses;
+    final List<List<Course>> coursesByDay;
+    
     if (isHoliday) {
-      weeklyCourses = [];
+      coursesByDay = _emptyWeekCourses();
     } else {
-      // 过滤当前周的课程
-      weeklyCourses = await _courseRepository.getCoursesForWeek(weekNumber);
+      final List<Course> courses;
+      if (_settingsDataStore.data.showNonCurrentWeekCourses) {
+        courses = await _courseRepository.getAllCourses();
+      } else {
+        courses = await _courseRepository.getCoursesForWeek(weekNumber);
+      }
+      coursesByDay = _groupCoursesByDay(courses, weekNumber);
     }
 
     emit(WeeklyCourseLoaded(
       currentWeek: weekNumber,
       weekStart: weekStart,
-      courses: weeklyCourses,
+      coursesByDay: coursesByDay,
       settings: _settingsDataStore.data,
       isHoliday: isHoliday,
     ));
+  }
+
+  List<List<Course>> _groupCoursesByDay(List<Course> courses, int currentWeek) {
+    final List<List<Course>> result = List.generate(7, (_) => []);
+    for (final course in courses) {
+      if (course.day < 1 || course.day > 7) {
+        continue;
+      }
+      final index = course.day - 1;
+      final isCurrentWeekCourse = course.weeks.contains(currentWeek);
+      if (isCurrentWeekCourse || _settingsDataStore.data.showNonCurrentWeekCourses) {
+        result[index].add(course);
+      }
+    }
+    if (_settingsDataStore.data.showNonCurrentWeekCourses) {
+      for (final dayCourses in result) {
+        dayCourses.sort((a, b) {
+          final aCurrent = a.weeks.contains(currentWeek);
+          final bCurrent = b.weeks.contains(currentWeek);
+          if (aCurrent == bCurrent) {
+            return 0;
+          }
+          return aCurrent ? -1 : 1;
+        });
+      }
+    }
+    return result;
+  }
+
+  List<List<Course>> _emptyWeekCourses() {
+    return List.generate(7, (_) => []);
   }
 
   /// 获取指定周号对应的周起始日期

@@ -30,6 +30,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<UpdateStartSemesterDate>(_onUpdateStartSemesterDate);
     on<ImportCourseTimes>(_onImportCoursesTimes);
     on<ExportCourseTimes>(_onExportCourseTimes);
+    on<UpdateShowNonCurrentWeekCourses>(_onUpdateShowNonCurrentWeekCourses);
 
     _sub = _settingsDataStore.stream.listen((data) {
       add(RefreshSettings());
@@ -74,6 +75,10 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   Future<void> _onUpdateWeeklyScheduleDisplay(UpdateWeeklyScheduleDisplay event, Emitter<SettingsState> emit) async {
     await _settingsDataStore.setShowWeekend(event.showWeekend);
     await _settingsDataStore.setAdaptiveWidth(event.adaptiveWidth);
+  }
+
+  Future<void> _onUpdateShowNonCurrentWeekCourses(UpdateShowNonCurrentWeekCourses event, Emitter<SettingsState> emit) async {
+    await _settingsDataStore.setShowNonCurrentWeekCourses(event.show);
   }
 
   /// 处理从JSON导入课程事件
