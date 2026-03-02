@@ -43,6 +43,8 @@ private class FlutterWebViewPlatformView(
 ) : PlatformView {
 
     private val defaultUserAgent = WebSettings.getDefaultUserAgent(context)
+    private val desktopUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
     private val methodChannel = MethodChannel(messenger, "${VIEW_TYPE}_$viewId")
     private val extraHeaders = mapOf("X-Requested-With" to "")
 
@@ -186,8 +188,33 @@ private class FlutterWebViewPlatformView(
                 webView.reload()
                 result.success(null)
             }
+            "setDesktopMode" -> {
+                val enable = (call.arguments as? Map<*, *>)?.get("enable") as? Boolean ?: false
+                applyDesktopMode(enable)
+                result.success(null)
+            }
             else -> result.notImplemented()
         }
+    }
+
+    private fun applyDesktopMode(enable: Boolean) {
+        val settings = webView.settings
+        if (enable) {
+            settings.userAgentString = desktopUserAgent
+            settings.useWideViewPort = false
+            settings.setSupportZoom(true)
+            webView.isHorizontalScrollBarEnabled = true
+            webView.isVerticalScrollBarEnabled = true
+            webView.setInitialScale(100)
+        } else {
+            settings.userAgentString = defaultUserAgent
+            settings.useWideViewPort = true
+            settings.setSupportZoom(false)
+            webView.isHorizontalScrollBarEnabled = false
+            webView.isVerticalScrollBarEnabled = false
+            webView.setInitialScale(0)
+        }
+        webView.reload()
     }
 
     private fun sendEvent(method: String, arguments: Any?) {

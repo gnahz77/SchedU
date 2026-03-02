@@ -49,11 +49,7 @@ class FlutterWebViewController {
   /// 设置 User-Agent
   Future<void> setUserAgent(String? userAgent) => _invoke('setUserAgent', {'userAgent': userAgent});
   /// 设置桌面模式
-  Future<void> setDesktopMode(bool enable) => setUserAgent(
-        enable
-            ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
-            : null,
-      );
+  Future<void> setDesktopMode(bool enable) => _invoke('setDesktopMode', {'enable': enable});
 }
 
 /// WebView的平台抽象接口
