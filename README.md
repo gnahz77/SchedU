@@ -1,10 +1,22 @@
-# SchedU
+<p align="center">
+  <span style="font-weight:700; font-size:2em; line-height:1; vertical-align:middle;">SchedU</span>
+  <img src="assets/images/schedu_icon.svg" alt="SchedU" style="height:2em; display:inline-block; vertical-align:middle; margin-left:8px;" />
+</p>
 
 SchedU是一个Flutter编写的多平台课程表，采用Material 3风格设计，支持从教务系统导入课程。
 
-### [安装包下载](../../releases)
 
 ![Preview](photos/preview.jpg)
+
+### 下载及安装
+点击下方链接前往发布页下载安装包，可根据你的手机系统及CPu架构选择对应的安装包：
+- 系统：暂时仅提供Android安装包
+- CPU架构：
+  - arm64-v8a（适用于大多数现代Android设备）
+  - armeabi-v7a（适用于部分老旧Android设备）
+  - x86_64（适用于部分模拟器和特殊设备）
+
+**[安装包下载](../../releases)**
 
 ### 目录
 - **[效果图](#效果图)**
@@ -24,6 +36,7 @@ SchedU是一个Flutter编写的多平台课程表，采用Material 3风格设计
 * 今日课程
 * 明日课程预告
 * 周课程表
+* 课程管理
 * 日课程小组件
 * 周课程小组件 **（开发中）**
 * 课程管理
@@ -38,9 +51,9 @@ SchedU是一个Flutter编写的多平台课程表，采用Material 3风格设计
 SchedU集成了[openai_dart](https://pub.dev/packages/openai_dart)，支持调用兼容OpenAI标准的API导入课程，可以在APP设置中配置API Key和API地址。
 **本APP附带有免费AI服务，免费API服务仅供体验，有并发和使用次数限制，请合理使用。（免费AI服务使用多个平台的国产模型，由系统随机分配）**
 
-**<font color="red">注意：使用AI导入功能会把导入时打开的页面HTML内容发送到第三方AI服务进行解析，请确保你信任所使用的AI服务提供商，并了解相关的隐私政策。</font>**
+**<font color="red">注意：使用AI导入功能会把导入时打开的页面HTML内容发送到第三方AI服务进行解析，请确保你信任所使用的AI服务提供商，并了解相关的隐私政策。本项目上传HTML只供临时解析使用，不会进行保存。</font>**
 
-（暂未对IOS的WKWebView进行适配，后续Web版本不会对教务导入进行适配）
+（暂未对IOS的WKWebView进行适配；后续的Web版本不会对教务导入进行适配）
 
 #### AI导入逻辑
 1. 通过内置浏览器(WebView)打开学校教务系统，登录后进入课程表页面。
@@ -62,7 +75,7 @@ SchedU集成了[openai_dart](https://pub.dev/packages/openai_dart)，支持调�
 ## 本地化
 - 硬编码为中文（zh_CN）
 - 设置了支持中文的 Material 本地化代理
-- 所有界面文本应使用中文
+- 所有界面文本均使用中文
 
 (ps: 因为我觉得Flutter的国际化支持不太好用，而且我只打算做中文版，所以就不做国际化的支持了)
 
