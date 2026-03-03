@@ -1,66 +1,27 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="1024dp"
-    android:height="1024dp"
-    android:viewportWidth="1024"
-    android:viewportHeight="1024">
+    android:width="350dp"
+    android:height="350dp"
+    android:viewportWidth="350"
+    android:viewportHeight="350">
   <path
-      android:pathData="M200,0L824,0A200,200 0,0 1,1024 200L1024,824A200,200 0,0 1,824 1024L200,1024A200,200 0,0 1,0 824L0,200A200,200 0,0 1,200 0z">
+      android:pathData="M0,0h0v0h-0z"
+      android:fillColor="#01F9F9F9"/>
+  <path
+      android:pathData="M45,0L305,0A45,45 0,0 1,350 45L350,305A45,45 0,0 1,305 350L45,350A45,45 0,0 1,0 305L0,45A45,45 0,0 1,45 0z"
+      android:fillColor="#FFFFFF"/>
+  <path
+      android:pathData="M101,67L61,67C61,67 74.1,67 74.1,92L74.1,199.1C74.1,254.83 119.27,300 175,300L175,300C230.73,300 275.9,254.83 275.9,199.1L275.9,92C275.9,67 289,67 289,67L248,67C236.95,67 228,75.95 228,87L228,160.83L228,196.59C228,226.09 204.09,250 174.59,250L174.59,250L174.59,250C144.99,250 121,226.01 121,196.41L121,160.83L121,87C121,75.95 112.05,67 101,67Z">
     <aapt:attr name="android:fillColor">
       <gradient 
-          android:startX="-0"
-          android:startY="0"
-          android:endX="1024"
-          android:endY="1024"
+          android:startX="74.18"
+          android:startY="184.15"
+          android:endX="275.98"
+          android:endY="184.15"
           android:type="linear">
-        <item android:offset="0" android:color="#FF006060"/>
-        <item android:offset="1" android:color="#FF008C8C"/>
+        <item android:offset="0" android:color="#FF19E0CC"/>
+        <item android:offset="1" android:color="#FF33CED6"/>
       </gradient>
     </aapt:attr>
   </path>
-  <path
-      android:pathData="M148,168L872,168A38,38 0,0 1,910 206L910,830A38,38 0,0 1,872 868L148,868A38,38 0,0 1,110 830L110,206A38,38 0,0 1,148 168z"
-      android:strokeAlpha="0.12"
-      android:fillColor="#FFFFFF"
-      android:fillAlpha="0.12"/>
-  <path
-      android:pathData="M148,168L872,168A38,38 0,0 1,910 206L910,270A38,38 0,0 1,872 308L148,308A38,38 0,0 1,110 270L110,206A38,38 0,0 1,148 168z"
-      android:strokeAlpha="0.18"
-      android:fillColor="#FFFFFF"
-      android:fillAlpha="0.18"/>
-  <path
-      android:pathData="M172,338L353,338A22,22 0,0 1,375 360L375,521A22,22 0,0 1,353 543L172,543A22,22 0,0 1,150 521L150,360A22,22 0,0 1,172 338z"
-      android:strokeAlpha="0.92"
-      android:fillColor="#FFFFFF"
-      android:fillAlpha="0.92"/>
-  <path
-      android:pathData="M420,338L601,338A22,22 0,0 1,623 360L623,521A22,22 0,0 1,601 543L420,543A22,22 0,0 1,398 521L398,360A22,22 0,0 1,420 338z"
-      android:strokeAlpha="0.92"
-      android:fillColor="#FFFFFF"
-      android:fillAlpha="0.92"/>
-  <path
-      android:pathData="M668,338L849,338A22,22 0,0 1,871 360L871,521A22,22 0,0 1,849 543L668,543A22,22 0,0 1,646 521L646,360A22,22 0,0 1,668 338z"
-      android:strokeAlpha="0.92"
-      android:fillColor="#FFFFFF"
-      android:fillAlpha="0.92"/>
-  <path
-      android:pathData="M172,573L353,573A22,22 0,0 1,375 595L375,756A22,22 0,0 1,353 778L172,778A22,22 0,0 1,150 756L150,595A22,22 0,0 1,172 573z"
-      android:strokeAlpha="0.92"
-      android:fillColor="#FFFFFF"
-      android:fillAlpha="0.92"/>
-  <path
-      android:pathData="M420,573L601,573A22,22 0,0 1,623 595L623,756A22,22 0,0 1,601 778L420,778A22,22 0,0 1,398 756L398,595A22,22 0,0 1,420 573z"
-      android:fillColor="#4FBCBC"/>
-  <path
-      android:pathData="M668,573L849,573A22,22 0,0 1,871 595L871,756A22,22 0,0 1,849 778L668,778A22,22 0,0 1,646 756L646,595A22,22 0,0 1,668 573z"
-      android:strokeAlpha="0.92"
-      android:fillColor="#FFFFFF"
-      android:fillAlpha="0.92"/>
-  <path
-      android:pathData="M155,200L155,240A35,35 0,0 0,225 240L225,200"
-      android:strokeLineJoin="round"
-      android:strokeWidth="20"
-      android:fillColor="#00000000"
-      android:strokeColor="#FFFFFF"
-      android:strokeLineCap="round"/>
 </vector>
