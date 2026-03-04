@@ -11,6 +11,7 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    // TODO: 本地打包时删除，或者在环境变量中设置相关值
     signingConfigs {
         release {
             storeFile file("release.keystore")
@@ -45,6 +46,7 @@ android {
 
     buildTypes {
         release {
+            // TODO: 本地调试打包时可更改为 signingConfigs.debug
             signingConfig = signingConfigs.release
             proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
