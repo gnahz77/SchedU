@@ -9,7 +9,7 @@ SchedU是一个Flutter编写的多平台课程表，采用Material 3风格设计
 ![Preview](photos/preview.jpg)
 
 ### 下载及安装
-点击下方链接前往发布页下载安装包，可根据你的手机系统及CPu架构选择对应的安装包：
+点击下方链接前往发布页下载安装包，可根据你的手机系统及CPU架构选择对应的安装包：
 - 系统：暂时仅提供Android安装包
 - CPU架构：
   - arm64-v8a（适用于大多数现代Android设备）
