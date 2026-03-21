@@ -27,6 +27,7 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
   late TextEditingController _nameController;
   late TextEditingController _positionController;
   late TextEditingController _teacherController;
+  late TextEditingController _remarkController;
 
   // Form data
   int _day = 1;
@@ -48,6 +49,7 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
       _nameController = TextEditingController(text: course.name);
       _positionController = TextEditingController(text: course.position);
       _teacherController = TextEditingController(text: course.teacher);
+      _remarkController = TextEditingController(text: course.remark ?? '');
       _selectedWeeks = List<int>.from(course.weeks);
       _day = course.day;
       if (course.sections.isNotEmpty) {
@@ -60,12 +62,14 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
       _nameController = TextEditingController();
       _positionController = TextEditingController();
       _teacherController = TextEditingController();
+      _remarkController = TextEditingController();
     }
 
     // Add listeners to track changes
     _nameController.addListener(_onFormChanged);
     _positionController.addListener(_onFormChanged);
     _teacherController.addListener(_onFormChanged);
+    _remarkController.addListener(_onFormChanged);
 
     // Initialize max sections and weeks
     final appSettings = AppSettingsStore.instance.data;
@@ -86,6 +90,7 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
     _nameController.dispose();
     _positionController.dispose();
     _teacherController.dispose();
+    _remarkController.dispose();
     super.dispose();
   }
 
@@ -144,6 +149,8 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
                   required: true,
                 ),
                 const SizedBox(height: 16),
+                _buildRemarkField(),
+                const SizedBox(height: 16),
                 _buildSectionSelector(),
                 const SizedBox(height: 16),
                 _buildDaySelector(),
@@ -184,6 +191,24 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
         }
         return null;
       },
+    );
+  }
+
+  Widget _buildRemarkField() {
+    return TextFormField(
+      controller: _remarkController,
+      decoration: InputDecoration(
+        labelText: '课程备注（可选）',
+        alignLabelWithHint: true,
+        prefixIcon: const Icon(Icons.sticky_note_2_outlined),
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      ),
+      minLines: 3,
+      maxLines: 6,
+      maxLength: 500,
+      textInputAction: TextInputAction.newline,
     );
   }
 
@@ -553,6 +578,7 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
       day: _day,
       sections: sections,
       colorId: _colorId,
+      remark: _normalizeRemark(_remarkController.text),
     );
 
     try {
@@ -591,5 +617,13 @@ class _CourseEditingPageState extends State<CourseEditingPage> {
         );
       }
     }
+  }
+
+  String? _normalizeRemark(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
   }
 }

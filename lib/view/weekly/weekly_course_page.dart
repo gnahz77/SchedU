@@ -906,6 +906,19 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
           color: Theme.of(context).colorScheme.primary,
         ),
 
+        const SizedBox(height: 16),
+
+        _buildDetailItem(
+          context: context,
+          icon: Icons.sticky_note_2_outlined,
+          title: '课程备注',
+          content: course.remark?.trim().isNotEmpty == true
+              ? course.remark!.trim()
+              : '暂无备注\n点击右上角编辑添加备注',
+          color: Theme.of(context).colorScheme.outline,
+          emphasizeContent: course.remark?.trim().isNotEmpty == true,
+        ),
+
         const SizedBox(height: 24),
 
         // 详细节次信息
@@ -989,7 +1002,15 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     required String title,
     required String content,
     required Color color,
+    bool emphasizeContent = true,
   }) {
+    final contentStyle = emphasizeContent
+        ? Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          )
+        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1029,9 +1050,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                 const SizedBox(height: 4),
                 Text(
                   content,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: contentStyle,
                 ),
               ],
             ),

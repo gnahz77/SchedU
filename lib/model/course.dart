@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:schedu/model/section_time.dart';
 
 part 'course.g.dart';
 
@@ -8,6 +7,7 @@ part 'course.g.dart';
 @JsonSerializable()
 class Course extends Equatable {
   static const Object _colorIdUnset = Object();
+  static const Object _remarkUnset = Object();
   /// 数据库主键 ID
   @JsonKey(ignore: true)
   final int? id;
@@ -34,6 +34,10 @@ class Course extends Equatable {
   @JsonKey(ignore: true)
   final int? colorId;
 
+  /// 课程备注（多行文本），可为空
+  @JsonKey(ignore: true)
+  final String? remark;
+
   const Course({
     this.id,
     required this.name,
@@ -43,6 +47,7 @@ class Course extends Equatable {
     required this.day,
     required this.sections,
     this.colorId,
+    this.remark,
   });
 
   /// 从JSON创建Course对象
@@ -61,6 +66,7 @@ class Course extends Equatable {
     int? day,
     List<int>? sections,
     Object? colorId = _colorIdUnset,
+    Object? remark = _remarkUnset,
   }) {
     return Course(
       id: id ?? this.id,
@@ -71,7 +77,24 @@ class Course extends Equatable {
       day: day ?? this.day,
       sections: sections ?? this.sections,
       colorId: identical(colorId, _colorIdUnset) ? this.colorId : colorId as int?,
+      remark: identical(remark, _remarkUnset) ? this.remark : remark as String?,
     );
+  }
+
+  /// 获取备注摘要：第一条非空行（trim 后压缩连续空白）
+  String? get remarkSnippet {
+    final value = remark;
+    if (value == null) {
+      return null;
+    }
+    final lines = value.replaceAll('\r\n', '\n').split('\n');
+    for (final line in lines) {
+      final normalized = line.trim();
+      if (normalized.isNotEmpty) {
+        return normalized.replaceAll(RegExp(r'\s+'), ' ');
+      }
+    }
+    return null;
   }
 
   /// 获取课程时间显示文本
@@ -97,11 +120,21 @@ class Course extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, position, teacher, weeks, day, sections, colorId];
+  List<Object?> get props => [
+    id,
+    name,
+    position,
+    teacher,
+    weeks,
+    day,
+    sections,
+    colorId,
+    remark,
+  ];
 
   @override
   String toString() {
     return 'Course(id: $id, name: $name, position: $position, teacher: $teacher, '
-        'weeks: $weeks, day: $day, sections: $sections, colorId: $colorId)';
+        'weeks: $weeks, day: $day, sections: $sections, colorId: $colorId, remark: $remark)';
   }
 }

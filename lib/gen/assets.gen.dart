@@ -58,6 +58,9 @@ class $AssetsImagesAiGen {
   /// File path: assets/images/ai/Kimi.png
   AssetGenImage get kimi => const AssetGenImage('assets/images/ai/Kimi.png');
 
+  /// File path: assets/images/ai/MiMo.jpg
+  AssetGenImage get miMo => const AssetGenImage('assets/images/ai/MiMo.jpg');
+
   /// File path: assets/images/ai/Qwen.png
   AssetGenImage get qwen => const AssetGenImage('assets/images/ai/Qwen.png');
 
@@ -76,6 +79,7 @@ class $AssetsImagesAiGen {
     gemini,
     grok,
     kimi,
+    miMo,
     qwen,
     tencent,
   ];

@@ -26,7 +26,7 @@ abstract class CourseRepository {
 /// 课程数据仓库实现
 class CourseRepositoryImpl extends CourseRepository {
   static const String _tableName = 'courses';
-  static const int _dbVersion = 3;
+  static const int _dbVersion = 4;
   static const int _colorSlotCount = 12; // Keep in sync with AppColors palettes
   
   Database? _database;
@@ -43,6 +43,8 @@ class CourseRepositoryImpl extends CourseRepository {
 
   @override
   void dispose() {
+    _database?.close();
+    _database = null;
     _stream.close();
     super.dispose();
   }
@@ -66,7 +68,8 @@ class CourseRepositoryImpl extends CourseRepository {
             day INTEGER NOT NULL,
             sections TEXT NOT NULL,
             color_id INTEGER,
-            weeks_mask INTEGER DEFAULT 0
+            weeks_mask INTEGER DEFAULT 0,
+            remark TEXT
           )
         ''');
       },
@@ -98,6 +101,9 @@ class CourseRepositoryImpl extends CourseRepository {
             }
           }
           await batch.commit(noResult: true);
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE $_tableName ADD COLUMN remark TEXT');
         }
       },
     );
@@ -231,6 +237,7 @@ class CourseRepositoryImpl extends CourseRepository {
       'sections': jsonEncode(course.sections),
       'color_id': course.colorId,
       'weeks_mask': _calculateWeeksMask(course.weeks),
+      'remark': course.remark,
     };
   }
 
@@ -257,6 +264,7 @@ class CourseRepositoryImpl extends CourseRepository {
       day: map['day'],
       sections: List<int>.from(jsonDecode(map['sections'])),
       colorId: map['color_id'] as int?,
+      remark: map['remark'] as String?,
     );
   }
 
