@@ -225,21 +225,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 onChanged: (value) {
                   context.read<SettingsBloc>().add(UpdateWeeklyScheduleDisplay(
                     showWeekend: value,
-                    adaptiveWidth: settingsState.appSettings.adaptiveWidth,
-                  ));
-                },
-              ),
-              // 宽度自适应开关
-              _buildSwitchSettingItem(
-                context,
-                icon: Icons.aspect_ratio_outlined,
-                title: '宽度自适应',
-                subtitle: '占满屏幕宽度，禁用横向滑动',
-                value: settingsState.appSettings.adaptiveWidth,
-                onChanged: (value) {
-                  context.read<SettingsBloc>().add(UpdateWeeklyScheduleDisplay(
-                    showWeekend: settingsState.appSettings.showWeekend,
-                    adaptiveWidth: value,
                   ));
                 },
               ),

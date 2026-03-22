@@ -74,7 +74,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
 
   Future<void> _onUpdateWeeklyScheduleDisplay(UpdateWeeklyScheduleDisplay event, Emitter<SettingsState> emit) async {
     await _settingsDataStore.setShowWeekend(event.showWeekend);
-    await _settingsDataStore.setAdaptiveWidth(event.adaptiveWidth);
   }
 
   Future<void> _onUpdateShowNonCurrentWeekCourses(UpdateShowNonCurrentWeekCourses event, Emitter<SettingsState> emit) async {

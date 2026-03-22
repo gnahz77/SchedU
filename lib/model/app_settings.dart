@@ -21,8 +21,6 @@ class AppSettings extends Equatable {
   final int startSemester;
   // 开学时间是否从星期天开始计算
   final bool startWithSunday;
-  // 周课表宽度自适应
-  final bool adaptiveWidth;
   // 周课表是否显示非当前周课程
   final bool showNonCurrentWeekCourses;
 
@@ -36,7 +34,6 @@ class AppSettings extends Equatable {
     this.sectionTimes = defaultSectionTimes,
     this.startWithSunday = false,
     this.startSemester = -1,
-    this.adaptiveWidth = true,
     this.showNonCurrentWeekCourses = false,
   });
 
@@ -87,7 +84,6 @@ class AppSettings extends Equatable {
       sectionTimes: sectionTimes ?? this.sectionTimes,
       startSemester: startSemester ?? this.startSemester,
       startWithSunday: startWithSunday ?? this.startWithSunday,
-      adaptiveWidth: adaptiveWidth ?? this.adaptiveWidth,
       showNonCurrentWeekCourses: showNonCurrentWeekCourses ?? this.showNonCurrentWeekCourses,
     );
   }
@@ -103,7 +99,6 @@ class AppSettings extends Equatable {
     sectionTimes,
     startSemester,
     startWithSunday,
-    adaptiveWidth,
     showNonCurrentWeekCourses,
   ];
 }

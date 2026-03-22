@@ -50,19 +50,16 @@ class UpdateSectionTimes extends SettingsEvent {
   List<Object?> get props => [sectionTimes];
 }
 
-
-/// 更新周课表展示设置（显示周末 + 宽度自适应）
+/// 更新周课表展示设置（显示周末）
 class UpdateWeeklyScheduleDisplay extends SettingsEvent {
   final bool showWeekend;
-  final bool adaptiveWidth;
 
   const UpdateWeeklyScheduleDisplay({
     required this.showWeekend,
-    required this.adaptiveWidth,
   });
 
   @override
-  List<Object?> get props => [showWeekend, adaptiveWidth];
+  List<Object?> get props => [showWeekend];
 }
 
 /// 更新开学日期

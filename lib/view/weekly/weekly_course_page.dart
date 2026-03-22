@@ -168,12 +168,9 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
 
     const sectionColumnWidth = 48.0;
     const minDayColumnWidth = 68.0;
-    const maxDayColumnWidth = 108.0;
     const sectionCellHeight = 64.0;
     const breakCellHeight = 24.0;
     const headerHeight = 48.0;
-
-    final useAdaptiveWidth = settings.adaptiveWidth;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -182,11 +179,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
             : MediaQuery.of(context).size.width;
         // 计算可用宽度并确定每日列宽度
         final availableWidth = math.max(screenWidth - sectionColumnWidth, 0.0);
-        final rawDayWidth = dayCount > 0 ? availableWidth / dayCount : minDayColumnWidth;
-        final dayColumnWidth = useAdaptiveWidth
-            ? rawDayWidth
-            : math.min(math.max(rawDayWidth, minDayColumnWidth), maxDayColumnWidth);
-        final contentWidth = sectionColumnWidth + dayColumnWidth * dayCount;
+        final dayColumnWidth = dayCount > 0 ? availableWidth / dayCount : minDayColumnWidth;
 
         final scheduleColumn = Column(
           mainAxisSize: MainAxisSize.min,
@@ -198,18 +191,10 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
 
         final verticalScroll = SingleChildScrollView(child: scheduleColumn);
 
-        return useAdaptiveWidth
-            ? Container(
-                width: double.infinity,
-                child: verticalScroll,
-              )
-            : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: contentWidth,
-                  child: verticalScroll,
-                ),
-              );
+        return Container(
+          width: double.infinity,
+          child: verticalScroll,
+        );
       },
     );
   }
