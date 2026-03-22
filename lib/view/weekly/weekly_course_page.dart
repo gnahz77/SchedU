@@ -7,9 +7,10 @@ import 'package:schedu/bloc/weekly_course/weekly_course_event.dart';
 import 'package:schedu/bloc/weekly_course/weekly_course_state.dart';
 import 'package:schedu/model/app_settings.dart';
 import 'package:schedu/model/course.dart';
+import 'package:schedu/service/course_conflict_utils.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/style/colors.dart';
-import 'package:schedu/view/route_names.dart';
+import 'package:schedu/view/widget/course_detail_bottom_sheet.dart';
 import 'package:schedu/view/weekly/weekly_schedule_utils.dart';
 
 class WeeklyCoursePage extends StatefulWidget {
@@ -324,6 +325,10 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
 
   /// 构建单日列
   Widget _buildDayColumn(BuildContext context, int day, List<Course> courses, AppSettings settings, double dayWidth, double sectionHeight, double breakHeight, {required int currentWeek}) {
+    final sectionToCourses = CourseConflictUtils.buildSectionToCoursesMap(
+      courses,
+      maxSection: settings.totalDailySections,
+    );
     final List<Widget> children = [];
     int section = 1;
     while (section <= settings.totalDailySections) {
@@ -331,77 +336,190 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
         children.add(_buildDayBreakCell(context, dayWidth, breakHeight));
       }
 
-      final course = courses.firstWhere(
-        (c) => c.sections.contains(section),
-        orElse: () => const Course(
-          name: '',
-          position: '',
-          teacher: '',
-          weeks: [],
-          day: 0,
-          sections: [],
-        ),
-      );
+      final sectionCourses = sectionToCourses[section] ?? const <Course>[];
+      if (sectionCourses.isEmpty) {
+        children.add(_buildEmptyDayCell(context, dayWidth, sectionHeight));
+        section++;
+        continue;
+      }
 
-      if (course.name.isNotEmpty) {
-        int span = 1;
-        int nextSection = section + 1;
-        double height = sectionHeight;
-
-        // 计算课程所占行高与跨越节数
-        while (nextSection <= settings.totalDailySections && course.sections.contains(nextSection)) {
-          if (WeeklyScheduleUtils.shouldShowBreakRow(nextSection, settings.morningSections, settings.afternoonSections)) {
-            height += breakHeight;
-          }
-          height += sectionHeight;
-          span++;
-          nextSection++;
-        }
-
-        children.add(Container(
-          height: height,
-          width: dayWidth,
-          decoration: BoxDecoration(
-            border: Border(
-              right: BorderSide(
-                color: Theme.of(context).colorScheme.outline,
-                width: 0.5,
-              ),
-              bottom: BorderSide(
-                color: Theme.of(context).colorScheme.outline,
-                width: 0.5,
-              ),
-            ),
-          ),
-          padding: const EdgeInsets.all(2),
-          child: GestureDetector(
-            onTap: () => _showCourseDetail(context, course, settings),
-            child: _buildCourseCell(context, course, currentWeek: currentWeek),
-          ),
-        ));
-        
-        section += span;
-      } else {
+      if (sectionCourses.length > 1) {
         children.add(Container(
           height: sectionHeight,
           width: dayWidth,
-          decoration: BoxDecoration(
-            border: Border(
-              right: BorderSide(
-                color: Theme.of(context).colorScheme.outline,
-                width: 0.5,
-              ),
-              bottom: BorderSide(
-                color: Theme.of(context).colorScheme.outline,
-                width: 0.5,
-              ),
+          decoration: _buildDayCellBorder(context),
+          padding: const EdgeInsets.all(2),
+          child: GestureDetector(
+            onTap: () => _showConflictCoursesForSlot(
+              context,
+              day: day,
+              section: section,
+              courses: sectionCourses,
+              settings: settings,
             ),
+            child: _buildConflictCell(context, sectionCourses.length),
           ),
         ));
         section++;
+        continue;
       }
+
+      final course = sectionCourses.first;
+      int span = 1;
+      int nextSection = section + 1;
+      double height = sectionHeight;
+      while (nextSection <= settings.totalDailySections) {
+        final nextSectionCourses = sectionToCourses[nextSection] ?? const <Course>[];
+        final shouldContinue =
+            nextSectionCourses.length == 1 && _isSameCourse(nextSectionCourses.first, course);
+        if (!shouldContinue) {
+          break;
+        }
+        if (WeeklyScheduleUtils.shouldShowBreakRow(nextSection, settings.morningSections, settings.afternoonSections)) {
+          height += breakHeight;
+        }
+        height += sectionHeight;
+        span++;
+        nextSection++;
+      }
+
+      children.add(Container(
+        height: height,
+        width: dayWidth,
+        decoration: _buildDayCellBorder(context),
+        padding: const EdgeInsets.all(2),
+        child: GestureDetector(
+          onTap: () => showCourseDetailBottomSheet(
+            context: this.context,
+            course: course,
+            settings: settings,
+            onEdited: () => this.context.read<WeeklyCourseBloc>().add(const RefreshWeeklyCourses()),
+          ),
+          child: _buildCourseCell(context, course, currentWeek: currentWeek),
+        ),
+      ));
+      section += span;
     }
     return Column(children: children);
+  }
+
+  BoxDecoration _buildDayCellBorder(BuildContext context) {
+    return BoxDecoration(
+      border: Border(
+        right: BorderSide(
+          color: Theme.of(context).colorScheme.outline,
+          width: 0.5,
+        ),
+        bottom: BorderSide(
+          color: Theme.of(context).colorScheme.outline,
+          width: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyDayCell(BuildContext context, double width, double height) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: _buildDayCellBorder(context),
+    );
+  }
+
+  bool _isSameCourse(Course left, Course right) {
+    return left == right;
+  }
+
+  Widget _buildConflictCell(BuildContext context, int count) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '冲突($count)',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.onErrorContainer,
+          fontWeight: FontWeight.w700,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  void _showConflictCoursesForSlot(
+    BuildContext context, {
+    required int day,
+    required int section,
+    required List<Course> courses,
+    required AppSettings settings,
+  }) {
+    final sortedCourses = CourseConflictUtils.sortCoursesForConflictList(courses);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '周${['一', '二', '三', '四', '五', '六', '日'][day - 1]} 第$section节 冲突(${sortedCourses.length})',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: sortedCourses.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final course = sortedCourses[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          course.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${course.timeText} · ${course.position}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          showCourseDetailBottomSheet(
+                            context: this.context,
+                            course: course,
+                            settings: settings,
+                            onEdited: () =>
+                                this.context.read<WeeklyCourseBloc>().add(const RefreshWeeklyCourses()),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /// 构建节次分隔行
@@ -764,298 +882,6 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// 显示课程详情底部弹窗，展示课程详细信息
-  void _showCourseDetail(BuildContext context, Course course, AppSettings settings) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.4,
-        minChildSize: 0.3,
-        maxChildSize: 0.8,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: Column(
-            children: [
-              // 拖拽指示器
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              // 标题栏
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '课程详情',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        final result = await Navigator.of(this.context).pushNamed(
-                          RouteNames.COURSE_EDITING,
-                          arguments: course,
-                        );
-                        if (result == true && mounted) {
-                          // 编辑完成后刷新课程列表
-                          this.context.read<WeeklyCourseBloc>().add(const RefreshWeeklyCourses());
-                        }
-                      },
-                      icon: const Icon(Icons.edit),
-                      tooltip: '编辑课程',
-                      splashRadius: 20,
-                    ),
-                  ],
-                ),
-              ),
-
-              const Divider(height: 1),
-
-              // 课程详情内容
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  child: _buildCourseDetailContent(context, course, settings),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 构建课程详情面板内容
-  Widget _buildCourseDetailContent(BuildContext context, Course course, AppSettings settings) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 课程名称
-        _buildDetailItem(
-          context: context,
-          icon: Icons.school,
-          title: '课程名称',
-          content: course.name,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-
-        const SizedBox(height: 16),
-
-        // 教师信息
-        _buildDetailItem(
-          context: context,
-          icon: Icons.person,
-          title: '任课教师',
-          content: course.teacher,
-          color: Theme.of(context).colorScheme.secondary,
-        ),
-
-        const SizedBox(height: 16),
-
-        // 上课地点
-        _buildDetailItem(
-          context: context,
-          icon: Icons.location_on,
-          title: '上课地点',
-          content: course.position,
-          color: Theme.of(context).colorScheme.tertiary,
-        ),
-
-        const SizedBox(height: 16),
-
-        // 上课时间
-        _buildDetailItem(
-          context: context,
-          icon: Icons.schedule,
-          title: '上课时间',
-          content: '${course.dayText} ${course.timeText}',
-          color: Theme.of(context).colorScheme.error,
-        ),
-
-        const SizedBox(height: 16),
-
-        // 周数信息
-        _buildDetailItem(
-          context: context,
-          icon: Icons.calendar_today,
-          title: '上课周数',
-          content: course.weeksText,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-
-        const SizedBox(height: 16),
-
-        _buildDetailItem(
-          context: context,
-          icon: Icons.sticky_note_2_outlined,
-          title: '课程备注',
-          content: course.remark?.trim().isNotEmpty == true
-              ? course.remark!.trim()
-              : '暂无备注\n点击右上角编辑添加备注',
-          color: Theme.of(context).colorScheme.outline,
-          emphasizeContent: course.remark?.trim().isNotEmpty == true,
-        ),
-
-        const SizedBox(height: 24),
-
-        // 详细节次信息
-        Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '节次详情',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ...course.sections.map((section) {
-                  final sectionTime = settings.sectionTimes[section-1];
-                  final timeText = '${sectionTime.startTime}-${sectionTime.endTime}';
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              section.toString(),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            timeText.isNotEmpty ? '第$section节课 ($timeText)' : '第$section节课',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  /// 构建带图标的详情项组件
-  Widget _buildDetailItem({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String content,
-    required Color color,
-    bool emphasizeContent = true,
-  }) {
-    final contentStyle = emphasizeContent
-        ? Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          )
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          );
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: color.withOpacity(0.8),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  content,
-                  style: contentStyle,
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

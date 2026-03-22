@@ -4,6 +4,10 @@ import 'package:schedu/model/course.dart';
 import 'package:schedu/bloc/daily_course/daily_course_bloc.dart';
 import 'package:schedu/bloc/daily_course/daily_course_event.dart';
 import 'package:schedu/bloc/daily_course/daily_course_state.dart';
+import 'package:schedu/repository/app_settings_store.dart';
+import 'package:schedu/service/course_conflict_utils.dart';
+import 'package:schedu/view/widget/course_detail_bottom_sheet.dart';
+
 import '../../model/section_time.dart';
 
 /// 当日课程视图页面
@@ -126,10 +130,15 @@ class _DailyCoursePageState extends State<DailyCoursePage>
 
     final sortedCourses = List<CourseWithStatus>.from(todayCourses)
       ..sort((a, b) => a.course.sections.first.compareTo(b.course.sections.first));
+    final dayCourses = sortedCourses.map((courseWithStatus) => courseWithStatus.course).toList();
 
     final children = <Widget>[
       for (final cws in sortedCourses)
-        _buildCourseCard(cws, sectionTimes),
+        _buildCourseCard(
+          cws,
+          sectionTimes,
+          conflictCourses: CourseConflictUtils.overlappingGroupForCourse(dayCourses, cws.course),
+        ),
     ];
 
     if (allFinished) {
@@ -144,7 +153,11 @@ class _DailyCoursePageState extends State<DailyCoursePage>
   }
 
   /// 构建课程列表
-  Widget _buildCourseCard(CourseWithStatus cws, List<SectionTime> sectionTimes) {
+  Widget _buildCourseCard(
+    CourseWithStatus cws,
+    List<SectionTime> sectionTimes, {
+    required List<Course> conflictCourses,
+  }) {
     final course = cws.course;
     final classTimeText = _getClassTimeText(course, sectionTimes);
     final timeText = classTimeText.isNotEmpty ? classTimeText : course.timeText;
@@ -234,6 +247,21 @@ class _DailyCoursePageState extends State<DailyCoursePage>
                           ),
                     ),
                   ),
+                  if (conflictCourses.length > 1) ...[
+                    const SizedBox(width: 8),
+                    ActionChip(
+                      label: Text('冲突(${conflictCourses.length})'),
+                      onPressed: () => _showConflictCoursesBottomSheet(conflictCourses),
+                      avatar: const Icon(Icons.warning_amber_rounded, size: 16),
+                      backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                      labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                      side: BorderSide.none,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
                   if (isFinished) ...[
                     const SizedBox(width: 8),
                     Icon(
@@ -283,6 +311,71 @@ class _DailyCoursePageState extends State<DailyCoursePage>
           ),
         ),
       ),
+    );
+  }
+
+  void _showConflictCoursesBottomSheet(List<Course> courses) {
+    final sortedCourses = CourseConflictUtils.sortCoursesForConflictList(courses);
+    final settings = AppSettingsStore.instance.data;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '冲突(${sortedCourses.length})',
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: sortedCourses.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final course = sortedCourses[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          course.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${course.timeText} · ${course.position}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          showCourseDetailBottomSheet(
+                            context: this.context,
+                            course: course,
+                            settings: settings,
+                            onEdited: () => this.context.read<DailyCourseBloc>().add(const RefreshDailyCourses()),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
