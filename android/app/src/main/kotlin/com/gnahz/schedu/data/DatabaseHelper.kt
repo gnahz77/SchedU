@@ -15,7 +15,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
 ) {
     companion object {
         private const val DATABASE_NAME = "schedu.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
 
         const val TABLE_COURSES = "courses"
 
@@ -29,6 +29,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val COLUMN_SECTIONS = "sections"
         const val COLUMN_COLOR_ID = "color_id"
         const val COLUMN_WEEKS_MASK = "weeks_mask"
+        const val COLUMN_REMARK = "remark"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -43,7 +44,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
                 $COLUMN_DAY INTEGER NOT NULL,
                 $COLUMN_SECTIONS TEXT NOT NULL,
                 $COLUMN_COLOR_ID INTEGER,
-                $COLUMN_WEEKS_MASK INTEGER DEFAULT 0
+                $COLUMN_WEEKS_MASK INTEGER DEFAULT 0,
+                $COLUMN_REMARK TEXT
             )
         """)
     }
@@ -81,6 +83,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
                     }
                 }
             }
+        }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE $TABLE_COURSES ADD COLUMN $COLUMN_REMARK TEXT")
         }
     }
 

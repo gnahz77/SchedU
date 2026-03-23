@@ -314,6 +314,10 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
       courses,
       maxSection: settings.totalDailySections,
     );
+    final sectionToResolvedSlots = <int, _ResolvedSectionSlot>{
+      for (var section = 1; section <= settings.totalDailySections; section++)
+        section: _resolveSectionSlot(sectionToCourses[section] ?? const <Course>[], currentWeek),
+    };
     final List<Widget> children = [];
     int section = 1;
     while (section <= settings.totalDailySections) {
@@ -321,14 +325,14 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
         children.add(_buildDayBreakCell(context, dayWidth, breakHeight));
       }
 
-      final sectionCourses = sectionToCourses[section] ?? const <Course>[];
-      if (sectionCourses.isEmpty) {
+      final resolvedSlot = sectionToResolvedSlots[section]!;
+      if (resolvedSlot.isEmpty) {
         children.add(_buildEmptyDayCell(context, dayWidth, sectionHeight));
         section++;
         continue;
       }
 
-      if (sectionCourses.length > 1) {
+      if (resolvedSlot.isConflict) {
         children.add(Container(
           height: sectionHeight,
           width: dayWidth,
@@ -339,24 +343,30 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
               context,
               day: day,
               section: section,
-              courses: sectionCourses,
+              courses: resolvedSlot.courses,
               settings: settings,
             ),
-            child: _buildConflictCell(context, sectionCourses.length),
+            child: _buildConflictCell(
+              context,
+              resolvedSlot.courses.length,
+              isCurrentWeekConflict: resolvedSlot.hasCurrentWeekCourse,
+            ),
           ),
         ));
         section++;
         continue;
       }
 
-      final course = sectionCourses.first;
+      final course = resolvedSlot.courses.first;
       int span = 1;
       int nextSection = section + 1;
       double height = sectionHeight;
       while (nextSection <= settings.totalDailySections) {
-        final nextSectionCourses = sectionToCourses[nextSection] ?? const <Course>[];
+        final nextResolvedSlot = sectionToResolvedSlots[nextSection]!;
         final shouldContinue =
-            nextSectionCourses.length == 1 && _isSameCourse(nextSectionCourses.first, course);
+            !nextResolvedSlot.isConflict &&
+            !nextResolvedSlot.isEmpty &&
+            _isSameCourse(nextResolvedSlot.courses.first, course);
         if (!shouldContinue) {
           break;
         }
@@ -415,19 +425,163 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     return left == right;
   }
 
-  Widget _buildConflictCell(BuildContext context, int count) {
+  _ResolvedSectionSlot _resolveSectionSlot(List<Course> rawSectionCourses, int currentWeek) {
+    if (rawSectionCourses.isEmpty) {
+      return const _ResolvedSectionSlot.empty();
+    }
+
+    final sortedCourses = CourseConflictUtils.sortCoursesForConflictList(rawSectionCourses);
+    final currentWeekCourses = sortedCourses
+        .where((course) => course.weeks.contains(currentWeek))
+        .toList(growable: false);
+    if (currentWeekCourses.length > 1) {
+      return _ResolvedSectionSlot.conflict(
+        courses: currentWeekCourses,
+        hasCurrentWeekCourse: true,
+      );
+    }
+    if (currentWeekCourses.length == 1) {
+      return _ResolvedSectionSlot.single(
+        currentWeekCourses.first,
+        hasCurrentWeekCourse: true,
+      );
+    }
+
+    final nonCurrentCourses = sortedCourses
+        .where((course) => !course.weeks.contains(currentWeek))
+        .toList(growable: false);
+    if (nonCurrentCourses.isEmpty) {
+      return const _ResolvedSectionSlot.empty();
+    }
+
+    final components = _buildWeekOverlapComponents(nonCurrentCourses);
+
+    components.sort((left, right) {
+      final leftHasCurrent = left.any((course) => course.weeks.contains(currentWeek));
+      final rightHasCurrent = right.any((course) => course.weeks.contains(currentWeek));
+      if (leftHasCurrent != rightHasCurrent) {
+        return leftHasCurrent ? -1 : 1;
+      }
+
+      final leftConflict = left.length > 1;
+      final rightConflict = right.length > 1;
+      if (leftConflict != rightConflict) {
+        return leftConflict ? -1 : 1;
+      }
+
+      if (left.length != right.length) {
+        return right.length.compareTo(left.length);
+      }
+
+      return _compareCoursePriority(left.first, right.first);
+    });
+
+    final primaryGroup = components.first;
+    final hasCurrentWeekCourse = false;
+    if (primaryGroup.length > 1) {
+      return _ResolvedSectionSlot.conflict(
+        courses: primaryGroup,
+        hasCurrentWeekCourse: hasCurrentWeekCourse,
+      );
+    }
+
+    return _ResolvedSectionSlot.single(
+      primaryGroup.first,
+      hasCurrentWeekCourse: hasCurrentWeekCourse,
+    );
+  }
+
+  List<List<Course>> _buildWeekOverlapComponents(List<Course> courses) {
+    final components = <List<Course>>[];
+    final visited = List<bool>.filled(courses.length, false);
+    for (var i = 0; i < courses.length; i++) {
+      if (visited[i]) {
+        continue;
+      }
+
+      final queue = <int>[i];
+      visited[i] = true;
+      final component = <Course>[];
+      while (queue.isNotEmpty) {
+        final currentIndex = queue.removeLast();
+        final currentCourse = courses[currentIndex];
+        component.add(currentCourse);
+
+        for (var nextIndex = 0; nextIndex < courses.length; nextIndex++) {
+          if (visited[nextIndex]) {
+            continue;
+          }
+          if (_coursesShareAnyWeek(currentCourse, courses[nextIndex])) {
+            visited[nextIndex] = true;
+            queue.add(nextIndex);
+          }
+        }
+      }
+
+      components.add(CourseConflictUtils.sortCoursesForConflictList(component));
+    }
+    return components;
+  }
+
+  bool _coursesShareAnyWeek(Course left, Course right) {
+    if (left.weeks.isEmpty || right.weeks.isEmpty) {
+      return false;
+    }
+    final rightWeekSet = right.weeks.toSet();
+    for (final week in left.weeks) {
+      if (rightWeekSet.contains(week)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int _compareCoursePriority(Course left, Course right) {
+    final startCompare = CourseConflictUtils
+        .courseStartSection(left)
+        .compareTo(CourseConflictUtils.courseStartSection(right));
+    if (startCompare != 0) {
+      return startCompare;
+    }
+    final nameCompare = left.name.compareTo(right.name);
+    if (nameCompare != 0) {
+      return nameCompare;
+    }
+    final teacherCompare = left.teacher.compareTo(right.teacher);
+    if (teacherCompare != 0) {
+      return teacherCompare;
+    }
+    return left.position.compareTo(right.position);
+  }
+
+  Widget _buildConflictCell(
+    BuildContext context,
+    int count, {
+    required bool isCurrentWeekConflict,
+  }) {
+    final baseColor = Theme.of(context).colorScheme.errorContainer;
+    final backgroundColor = isCurrentWeekConflict
+        ? baseColor
+        : Color.alphaBlend(
+            Theme.of(context).colorScheme.surface.withOpacity(0.75),
+            baseColor,
+          );
+    final textColor = isCurrentWeekConflict
+        ? Theme.of(context).colorScheme.onErrorContainer
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.errorContainer,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(6),
       ),
       alignment: Alignment.center,
       child: Text(
         '冲突($count)',
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.onErrorContainer,
+          color: textColor,
           fontWeight: FontWeight.w700,
         ),
         maxLines: 1,
@@ -914,5 +1068,46 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
   String _getWeekDateRange(DateTime weekStart) {
     final weekEnd = weekStart.add(const Duration(days: 6));
     return '${weekStart.month}月${weekStart.day}日 - ${weekEnd.month}月${weekEnd.day}日';
+  }
+}
+
+class _ResolvedSectionSlot {
+  const _ResolvedSectionSlot._({
+    required this.courses,
+    required this.hasCurrentWeekCourse,
+    required this.isConflict,
+  });
+
+  final List<Course> courses;
+  final bool hasCurrentWeekCourse;
+  final bool isConflict;
+
+  bool get isEmpty => courses.isEmpty;
+
+  const _ResolvedSectionSlot.empty()
+      : courses = const [],
+        hasCurrentWeekCourse = false,
+        isConflict = false;
+
+  factory _ResolvedSectionSlot.single(
+    Course course, {
+    required bool hasCurrentWeekCourse,
+  }) {
+    return _ResolvedSectionSlot._(
+      courses: [course],
+      hasCurrentWeekCourse: hasCurrentWeekCourse,
+      isConflict: false,
+    );
+  }
+
+  factory _ResolvedSectionSlot.conflict({
+    required List<Course> courses,
+    required bool hasCurrentWeekCourse,
+  }) {
+    return _ResolvedSectionSlot._(
+      courses: courses,
+      hasCurrentWeekCourse: hasCurrentWeekCourse,
+      isConflict: true,
+    );
   }
 }
