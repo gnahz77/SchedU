@@ -23,17 +23,29 @@ class WeeklyCoursePage extends StatefulWidget {
 /// 周课程视图页面
 class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     with WidgetsBindingObserver {
+  PageController? _pageController;
+  int _lastTotalWeeks = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final state = context.read<WeeklyCourseBloc>().state;
+    if (state is WeeklyCourseLoaded) {
+      _lastTotalWeeks = math.max(1, state.settings.totalWeeks);
+      _pageController = PageController(
+        initialPage: (state.currentWeek - 1).clamp(0, _lastTotalWeeks - 1),
+      );
+    } else {
+      _pageController = PageController();
+    }
   }
 
   @override
   void dispose() {
-    super.dispose();
+    _pageController?.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -47,7 +59,34 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<WeeklyCourseBloc, WeeklyCourseState>(
+    return BlocConsumer<WeeklyCourseBloc, WeeklyCourseState>(
+      listenWhen: (previous, current) {
+        if (current is! WeeklyCourseLoaded) return false;
+        if (previous is! WeeklyCourseLoaded) return true;
+        return previous.currentWeek != current.currentWeek ||
+            previous.settings.totalWeeks != current.settings.totalWeeks;
+      },
+      listener: (context, state) {
+        if (state is WeeklyCourseLoaded) {
+          final safeTotalWeeks = math.max(1, state.settings.totalWeeks);
+          if (_pageController == null || _lastTotalWeeks != safeTotalWeeks) {
+            _lastTotalWeeks = safeTotalWeeks;
+            _pageController?.dispose();
+            _pageController = PageController(
+              initialPage: (state.currentWeek - 1).clamp(0, safeTotalWeeks - 1),
+            );
+          } else {
+            final targetPage = (state.currentWeek - 1).clamp(0, safeTotalWeeks - 1);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _pageController?.hasClients == true) {
+                if (_pageController!.page?.round() != targetPage) {
+                  _pageController!.jumpToPage(targetPage);
+                }
+              }
+            });
+          }
+        }
+      },
       builder: (context, state) {
         if (state is WeeklyCourseLoading) {
           return const Scaffold(
@@ -66,6 +105,8 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
           );
         }
 
+        final safeTotalWeeks = math.max(1, state.settings.totalWeeks);
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('周课程表'),
@@ -75,14 +116,20 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
             actions: [
               IconButton(
                 onPressed: state.currentWeek > 1
-                    ? () => context.read<WeeklyCourseBloc>().add(const GoToPreviousWeek())
+                    ? () => _pageController?.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        )
                     : null,
                 icon: const Icon(Icons.chevron_left),
                 tooltip: '上一周',
               ),
               IconButton(
-                onPressed: state.currentWeek < state.settings.totalWeeks
-                    ? () => context.read<WeeklyCourseBloc>().add(const GoToNextWeek())
+                onPressed: state.currentWeek < safeTotalWeeks
+                    ? () => _pageController?.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        )
                     : null,
                 icon: const Icon(Icons.chevron_right),
                 tooltip: '下一周',
@@ -96,8 +143,10 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
                 onTap: () => _showWeekSelector(
                     context,
                     currentWeek: state.currentWeek,
-                    totalWeeks: state.settings.totalWeeks,
-                    startSemesterDate: DateTime.fromMillisecondsSinceEpoch(state.settings.startSemester)
+                    totalWeeks: safeTotalWeeks,
+                    startSemesterDate: state.settings.startSemester > 0
+                        ? DateTime.fromMillisecondsSinceEpoch(state.settings.startSemester)
+                        : null,
                 ),
                 child: Container(
                   width: double.infinity,
@@ -134,22 +183,42 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
               ),
               // 周视图主体
               Expanded(
-                child: Builder(
-                  builder: (context) {
-                    if (state.isHoliday) {
+                child: PageView.builder(
+                  key: ValueKey(safeTotalWeeks),
+                  controller: _pageController,
+                  itemCount: safeTotalWeeks,
+                  onPageChanged: (index) {
+                    final targetWeek = index + 1;
+                    if (targetWeek != state.currentWeek) {
+                      context.read<WeeklyCourseBloc>().add(JumpToWeek(targetWeek));
+                    }
+                  },
+                  itemBuilder: (context, index) {
+                    if (state.settings.totalWeeks <= 0) {
+                      return _buildInvalidTotalWeeksState(context);
+                    }
+
+                    final week = index + 1;
+                    final weekData = state.weekCache[week];
+                    
+                    if (weekData == null || !weekData.isReady || state.loadingWeeks.contains(week)) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (weekData.isHoliday) {
                       return _buildHolidayState(context);
                     }
-                    final hasCourses = state.coursesByDay
+                    final hasCourses = weekData.coursesByDay
                         .any((dayCourses) => dayCourses.isNotEmpty);
                     if (!hasCourses) {
                       return _buildEmptyState(context);
                     }
                     return _buildWeeklySchedule(
                       context,
-                      state.coursesByDay,
+                      weekData.coursesByDay,
                       state.settings,
-                      state.weekStart,
-                      currentWeek: state.currentWeek,
+                      weekData.weekStart,
+                      currentWeek: week,
                     );
                   },
                 ),
@@ -817,6 +886,29 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
     );
   }
 
+  /// 获取课程格子的背景颜色
+  Widget _buildInvalidTotalWeeksState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '请在设置中设置总周数',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 构建空状态视图
   Widget _buildEmptyState(BuildContext context) {
     return Center(
@@ -904,7 +996,7 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
       required int totalWeeks,
       DateTime? startSemesterDate,
   }) {
-    final bloc = context.read<WeeklyCourseBloc>();
+
     final actualCurrentWeek = WeeklyScheduleUtils.calculateCurrentWeek(startSemesterDate ?? DateTime.now());
     showModalBottomSheet(
       context: context,
@@ -994,7 +1086,13 @@ class _WeeklyCoursePageState extends State<WeeklyCoursePage>
 
                     return GestureDetector(
                       onTap: () {
-                        bloc.add(JumpToWeek(week));
+                        if (_pageController?.hasClients == true) {
+                          _pageController?.animateToPage(
+                            week - 1,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
                         Navigator.of(context).pop();
                       },
                       child: Container(
