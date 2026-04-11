@@ -12,6 +12,9 @@ import 'package:schedu/bloc/settings/settings_state.dart';
 import 'package:schedu/gen/assets.gen.dart';
 import 'package:schedu/model/section_time.dart';
 import 'package:schedu/service/course_import_service.dart';
+import 'package:schedu/service/app_update_service.dart';
+import 'package:schedu/view/widget/app_update_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../bloc/settings/settings_side_effect.dart';
 import '../route_names.dart';
@@ -28,8 +31,10 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   static const MethodChannel _widgetChannel = MethodChannel('com.gnahz.schedu/main');
 
+  final AppUpdateService _appUpdateService = AppUpdateService();
   StreamSubscription<SettingsSideEffectEvent>? _sideEffectSub;
   String _appVersion = '';
+  bool _checkingUpdate = false;
 
   @override
   void initState() {
@@ -72,6 +77,79 @@ class _ProfilePageState extends State<ProfilePage> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  /// 检查更新
+  Future<void> _handleManualUpdateCheck() async {
+    if (_checkingUpdate) return;
+    _checkingUpdate = true;
+
+    NavigatorState? loadingNavigator;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        loadingNavigator = Navigator.of(dialogContext);
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
+
+    try {
+      final prompt = await _appUpdateService.checkForUpdate(manual: true);
+
+      if (loadingNavigator?.mounted ?? false) {
+        loadingNavigator!.pop();
+      }
+
+      if (!mounted) return;
+
+      if (prompt == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('当前已是最新版本')),
+        );
+        return;
+      }
+
+      final action = await showDialog<AppUpdateDialogAction>(
+        context: context,
+        builder: (context) => AppUpdateDialog(
+          currentVersion: prompt.currentVersion,
+          latestVersion: prompt.latestVersion,
+        ),
+      );
+
+      if (!mounted || action == null) return;
+
+      if (action == AppUpdateDialogAction.snooze) {
+        await _appUpdateService.skipVersion(prompt.latestVersion);
+        return;
+      }
+
+      if (action == AppUpdateDialogAction.update) {
+        final uri = Uri.tryParse(prompt.releaseUrl);
+        if (uri == null) return;
+
+        try {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (_) {
+          // 外部浏览器跳转失败时静默忽略，避免影响使用体验
+        }
+      }
+    } catch (_) {
+      if (loadingNavigator?.mounted ?? false) {
+        loadingNavigator!.pop();
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('检查更新失败，请稍后重试')),
+      );
+    } finally {
+      _checkingUpdate = false;
     }
   }
 
@@ -305,6 +383,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 title: '添加小组件',
                 subtitle: '将“今日课程”桌面小组件固定到桌面',
                 onTap: () => _handleAddWidgetTap(context),
+              ),
+              // 检查新版本
+              _buildSettingItem(
+                context,
+                icon: Icons.system_update_outlined,
+                title: '检查新版本',
+                subtitle: '手动检查应用更新',
+                onTap: _handleManualUpdateCheck,
               ),
               const SizedBox(height: 32),
             ],
